@@ -221,6 +221,72 @@ class Judge:
             pass
         return self._narrate_offline(finding)
 
+    def triage(self, findings: list[dict]) -> dict:
+        """Independently rank findings by takeover risk from RAW evidence only.
+
+        This is the load-bearing use of the model: the prompt deliberately
+        withholds the scorer's risk/severity/signals so Gemma cannot copy
+        them. It receives only ground-truth fields (RDAP dates, dependents,
+        downloads, dormancy, MX) and must reason about which combinations are
+        dangerous. Returns its own ranking plus a per-domain verdict.
+
+        Falls back to the rules-only baseline ordering when offline, so the
+        backtest always has something to compare against.
+        """
+        clean = [f for f in findings if isinstance(f, dict) and f.get("domain")]
+        if not clean:
+            return {"backend": self.backend, "live": False, "ranking": [], "assessments": []}
+        prompt = build_triage_prompt(clean)
+        text = None
+        try:
+            if self.backend == "gemini":
+                for model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
+                    text = _http_json_text(
+                        GEMINI_BASE_URL.format(model=model),
+                        headers={"Content-Type": "application/json",
+                                 "x-goog-api-key": self.api_key},
+                        body={"contents": [{"parts": [{"text": prompt}]}]},
+                        timeout=max(self.timeout, 60),
+                        extract=_gemini_text,
+                    )
+                    if text:
+                        break
+            elif self.backend == "ollama":
+                text = _http_json_text(
+                    OLLAMA_URL,
+                    headers={"Content-Type": "application/json"},
+                    body={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+                    timeout=max(self.timeout, 90),
+                    extract=_ollama_text,
+                )
+        except Exception:  # noqa: BLE001
+            text = None
+        parsed = _parse_triage_json(text, clean) if text else None
+        if parsed is None:
+            return self._triage_offline(clean)
+        parsed["backend"] = self.backend
+        parsed["live"] = True
+        return parsed
+
+    def _triage_offline(self, clean: list[dict]) -> dict:
+        """Rules-only baseline: order by the scorer's existing risk field."""
+        ordered = sorted(clean, key=lambda f: -_as_int(f.get("risk")))
+        return {
+            "backend": self.backend,
+            "live": False,
+            "ranking": [str(f["domain"]) for f in ordered],
+            "assessments": [
+                {
+                    "domain": str(f["domain"]),
+                    "model_risk": _as_int(f.get("risk")),
+                    "confidence": "low",
+                    "key_evidence": [str(s) for s in (f.get("signals") or [])][:3],
+                    "reasoning": "rules-only baseline (no live model available)",
+                }
+                for f in ordered
+            ],
+        }
+
     # -- live backends -------------------------------------------------------
 
     def _narrate_gemini(self, finding: dict) -> dict | None:
@@ -341,6 +407,124 @@ def build_prompt(finding: dict) -> str:
     ]
     return "\n".join(lines)
 
+
+
+def build_triage_prompt(findings: list[dict]) -> str:
+    """Render findings as RAW evidence for independent triage ranking.
+
+    Deliberately excludes the scorer's risk/severity/signals — the model must
+    reason from ground truth (RDAP dates, counts, dormancy, MX) or it is just
+    echoing the baseline. This is what makes the model load-bearing.
+    """
+    lines = [
+        "You are a supply-chain security analyst triaging package-maintainer",
+        "email domains for takeover risk. An attacker who controls a domain",
+        "controls the password-reset flow for every registry account using it.",
+        "",
+        "Below are domains with their raw evidence. There is NO pre-computed",
+        "score — you must judge which are dangerous and why. Consider that a",
+        "recently-created domain hosting a dormant maintainer's email, with",
+        "mail (MX) live, is the classic pre-attack signature; a long-held",
+        "domain with an active maintainer is not.",
+        "",
+        "For EACH domain return an assessment, and then rank them all.",
+        "Reply with ONLY a JSON object, no markdown fence:",
+        '  "ranking": ["most-risky.domain", ...],   // all domains, worst first',
+        '  "assessments": [',
+        '    {"domain": "...", "model_risk": 0-100,',
+        '     "confidence": "high|medium|low",',
+        '     "key_evidence": ["the facts that drove your call"],',
+        '     "reasoning": "one sentence on the attack path"}',
+        "  ]",
+        "",
+        "=== DOMAINS ===",
+    ]
+    for f in findings:
+        rdap = f.get("rdap") or {}
+        domain = f.get("domain")
+        age = ""
+        created = rdap.get("created")
+        if created:
+            try:
+                from datetime import datetime, timezone
+                cd = datetime.fromisoformat(str(created).replace("Z", "+00:00"))
+                age = f" (registered {max(0, (datetime.now(timezone.utc) - cd).days)} days ago)"
+            except Exception:  # noqa: BLE001
+                age = ""
+        lines += [
+            f"- {domain}",
+            f"    registered: {rdap.get('registered')}",
+            f"    created: {created or 'unknown'}{age}",
+            f"    expires: {rdap.get('expires') or 'unknown'}",
+            f"    maintainers dormant (no publish 24mo): {f.get('maintainer_dormant')}",
+            f"    last publish: {f.get('last_publish') or 'unknown'}",
+            f"    mail (MX) live on domain: {f.get('mx_present')}",
+            f"    dependents: {_as_int(f.get('dependents'))}",
+            f"    weekly downloads: {_as_int(f.get('downloads_week'))}",
+            f"    packages: {', '.join(str(p) for p in (f.get('packages') or [])) or 'none'}",
+        ]
+    return "\n".join(lines)
+
+
+def _parse_triage_json(text: str | None, clean: list[dict]) -> dict | None:
+    """Parse and validate the triage response; None if unusable."""
+    if not text:
+        return None
+    data = _extract_json(text)
+    if not isinstance(data, dict):
+        return None
+    ranking = data.get("ranking")
+    assessments = data.get("assessments")
+    known = {str(f["domain"]).lower() for f in clean}
+    if not isinstance(ranking, list) or not isinstance(assessments, list):
+        return None
+    # keep only domains we actually asked about, de-duplicated, order preserved
+    seen, out_rank = set(), []
+    for d in ranking:
+        dl = str(d).strip().lower()
+        if dl in known and dl not in seen:
+            seen.add(dl)
+            out_rank.append(dl)
+    # any domain the model omitted still gets assessed, appended at the end
+    for f in clean:
+        if str(f["domain"]).lower() not in seen:
+            out_rank.append(str(f["domain"]).lower())
+    valid_assess = []
+    for a in assessments:
+        if isinstance(a, dict) and str(a.get("domain", "")).lower() in known:
+            try:
+                mr = max(0, min(100, int(a.get("model_risk"))))
+            except (TypeError, ValueError):
+                mr = None
+            valid_assess.append({
+                "domain": str(a["domain"]).lower(),
+                "model_risk": mr,
+                "confidence": str(a.get("confidence") or "low"),
+                "key_evidence": [str(x) for x in (a.get("key_evidence") or [])][:4],
+                "reasoning": str(a.get("reasoning") or "")[:300],
+            })
+    if not out_rank:
+        return None
+    return {"ranking": out_rank, "assessments": valid_assess}
+
+
+def _extract_json(text: str):
+    """Tolerant JSON extraction: strip fences, find the outermost object."""
+    text = (text or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    try:
+        return json.loads(text)
+    except Exception:  # noqa: BLE001
+        pass
+    start, end = text.find("{"), text.rfind("}")
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
+        except Exception:  # noqa: BLE001
+            return None
+    return None
 
 
 def _sentence(text: str) -> str:

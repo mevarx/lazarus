@@ -41,7 +41,10 @@ CACHED_RUN_PATH = DATA_DIR / "cached_run.json"
 LAST_RUN_PATH = DATA_DIR / "last_run.json"
 RDAP_CACHE_PATH = DATA_DIR / "rdap_cache.json"
 
-HOST = os.environ.get("HOST", "0.0.0.0")
+HOST = os.environ.get("HOST", "127.0.0.1")  # loopback by default: a security
+                                          # tool should not listen on the
+                                          # venue network. Set HOST=0.0.0.0
+                                          # explicitly to expose it.
 PORT = int(os.environ.get("PORT", "8741"))
 
 CONTENT_TYPES = {
@@ -105,6 +108,50 @@ def _load_persisted_run() -> None:
     run = load_json_file(LAST_RUN_PATH, None)
     if isinstance(run, dict) and run.get("findings"):
         LAST_RUN = run
+
+
+def _mask_email_in_text(text: str) -> str:
+    """Mask any bare email inside prose (narratives/recommendations)."""
+    import re as _re
+    return _re.sub(r"([A-Za-z0-9._%+-]{1,64})@([A-Za-z0-9.-]+\.[A-Za-z]{2,})",
+                   lambda m: m.group(1)[:3] + "****@" + m.group(2), text or "")
+
+
+def redact_maintainers(findings: list[dict]) -> list[dict]:
+    """Mask maintainer emails before they leave the process.
+
+    The dashboard also redacts client-side, but a judge can hit /api/findings
+    directly with curl — so the API boundary redacts too. Domain is public
+    registry data and stays; only the mailbox is masked
+    (atiertant@x.net -> ati****@x.net). Non-email usernames pass through.
+    Narrative/recommendation prose is masked too, since seeded narratives
+    name the maintainer inline.
+    """
+    out = []
+    for f in findings:
+        if not isinstance(f, dict):
+            out.append(f)
+            continue
+        g = dict(f)
+        maint = g.get("maintainers")
+        if isinstance(maint, list):
+            masked = []
+            for m in maint:
+                s = str(m)
+                at = s.find("@")
+                if at > 0:
+                    masked.append(s[:min(3, at)] + "****" + s[at:])
+                else:
+                    masked.append(s)
+            g["maintainers"] = masked
+        narr = g.get("narrative")
+        if isinstance(narr, dict):
+            g["narrative"] = {
+                k: (_mask_email_in_text(v) if isinstance(v, str) else v)
+                for k, v in narr.items()
+            }
+        out.append(g)
+    return out
 
 
 def current_findings() -> tuple[list[dict], str]:
@@ -380,19 +427,27 @@ def cached_payload() -> dict:
     cached = dict(load_cached_run())
     findings = cached.get("findings", [])
     cached["source"] = "cached"
+    cached["seeded"] = True
+    # Redact once, up front, so the graph nodes/edges and any narrative text
+    # are built from the masked set — no raw email survives anywhere in the
+    # payload (findings, graph ids/labels, or prose).
+    safe = redact_maintainers(findings)
+    cached["findings"] = safe
     cached.update(judge_status())
-    cached.setdefault("stats", compute_stats(findings))
-    cached.setdefault("graph", build_graph(findings))
+    cached.setdefault("stats", compute_stats(safe))
+    cached.setdefault("graph", build_graph(safe))
     return cached
 
 
 def findings_payload() -> dict:
     findings, source = current_findings()
+    safe = redact_maintainers(findings)
     payload = {
-        "findings": findings,
+        "findings": safe,
         "source": source,
+        "seeded": source in ("cached", "seed"),
         "count": len(findings),
-        "stats": compute_stats(findings),
+        "stats": compute_stats(safe),
         "updated_at": now_iso(),
     }
     payload.update(judge_status())
@@ -512,7 +567,10 @@ class Handler(BaseHTTPRequestHandler):
 
         def emit_finding(f: dict) -> None:
             findings_out.append(f)
-            self._sse_send("finding", {"finding": f, "index": len(findings_out)})
+            # Redact before the event leaves the process — the SSE stream is
+            # as reachable as the JSON APIs.
+            self._sse_send("finding", {"finding": redact_maintainers([f])[0],
+                                       "index": len(findings_out)})
 
         mode = "demo"
         try:
@@ -697,7 +755,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(findings_payload())
             if path == "/api/graph":
                 findings, _ = current_findings()
-                return self._send_json(build_graph(findings))
+                return self._send_json(build_graph(redact_maintainers(findings)))
             if path == "/api/cached":
                 return self._send_json(cached_payload())
             if path == "/api/run":

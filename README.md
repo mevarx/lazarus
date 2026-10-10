@@ -13,12 +13,20 @@ npm and PyPI packages are published by people, and people identify themselves
 with email addresses. Those addresses live on domains — small side-project
 domains that expire, lapse for a month, and get registered by whoever notices.
 Once an attacker controls the domain, they control the password reset flow for
-every registry account still using it. This is not hypothetical: the March 2022
-**node-ipc incident** saw a hugely-depended-upon package turned into
-protestware that wiped files on developer machines. Lazarus treats maintainer
-email domains as attack surface: harvest them, check their registration health
-via RDAP, score the takeover risk, and have a language model narrate what it
-means.
+every registry account still using it.
+
+This is not hypothetical. In **May 2026** the popular npm package **`node-ipc`**
+(424 dependents, ~658k weekly downloads) was compromised exactly this way: a
+dormant maintainer's email domain, `atlantis-software.net`, had expired in
+**January 2025**, was **re-registered on 2026-05-07** (RDAP-verified), and
+seven days later — **2026-05-14** — three trojaned versions (`9.1.6`, `9.2.3`,
+`12.0.1`) shipped with a credential stealer. The attacker did not target
+node-ipc; they swept npm for accounts with custom-domain emails, found expired
+ones, and took whatever was available.
+
+Lazarus treats maintainer email domains as attack surface: harvest them, check
+their registration health via RDAP, score the takeover risk, and have a
+language model reason over the evidence.
 
 ## What it does
 
@@ -61,9 +69,7 @@ network. The module contract lives in `INTERFACES.md`.
 
 ## How to run
 
-Requires **Python 3.10+** (project standard: `python` = 3.11, which has the
-needed packages; `python3` = 3.13 has zero packages on this machine). No pip
-installs. No build step.
+Requires **Python 3.10+** (tested on 3.11). No pip installs. No build step.
 
 ```bash
 cd lazarus
@@ -79,7 +85,7 @@ via SSE. `Run scan` restarts the stream at any time.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `HOST` | `0.0.0.0` | bind address |
+| `HOST` | `127.0.0.1` | bind address (loopback — a security tool should not listen on the venue network) |
 | `PORT` | `8741` | bind port |
 | `GEMINI_API_KEY` | — | enables live Gemma narration via the free Gemini API |
 | `LAZARUS_LIVE` | — | `1` forces the real harvest/RDAP pipeline on `/api/run` |
@@ -103,28 +109,32 @@ the demo never goes dark.
 
 ## Demo data
 
-`data/cached_run.json` is a full pre-seeded scan: 7 realistic findings across
-npm and PyPI, including the **atlantis-software.net** case — created
-2026-05-07, expires 2027-05-07, hosting the `node-ipc` maintainer email,
-scored HIGH (75) for recent re-registration plus a dormant maintainer. Each
-finding carries a pre-written narrative so the "Narrate with Gemma" flow
-renders instantly even offline.
+`data/cached_run.json` is a **seeded** run, not a live scan — it is a replay so
+the demo works with no API key and no network. The dashboard shows a visible
+**REPLAY** badge whenever it is rendering seeded data, and labels live runs
+**LIVE**. The `atlantis-software.net` finding is the real, RDAP-verified case
+(created 2026-05-07, expires 2027-05-07, hosting the `node-ipc` maintainer
+`atiertant`, scored by the real scorer at the attack date); the other six are
+realistic companions so the dashboard has range. Each seeded finding carries a
+pre-written narrative so the "Narrate with Gemma" flow renders instantly
+offline.
 
 ## Credits & further reading
 
-- **The node-ipc incident (March 2022)** — the maintainer of `node-ipc`
-  (alongside `colors.js`) shipped protestware that destroyed files on affected
-  machines. The canonical reminder that maintainer identity and domain control
-  *are* supply-chain control; the seed case in this project is modelled on it.
-- **Backstabber's Knife Collection** — Vu et al., ACSAC 2020
-  ([arXiv:2002.01117](https://arxiv.org/abs/2002.01117)) — the academic corpus
-  of malicious npm/PyPI packages. The threat-modeling and research framing of
-  this project follows the same open, reproducible style used by industry
-  security research labs such as NVIDIA's AI Red Team.
+- **The node-ipc compromise (May 2026)** — a dormant maintainer account
+  (`atiertant`) was taken over via the expired domain `atlantis-software.net`;
+  three malicious versions (`9.1.6`, `9.2.3`, `12.0.1`) were published
+  2026-05-14. Registration date RDAP-verified as 2026-05-07. This is the
+  incident the seed case is modelled on. (Sources: CSO Online, Snyk,
+  StepSecurity, Socket — all May 2026.)
+- **Backstabber's Knife Collection** — Ohm, Plate, Sykosch, Meier,
+  *DIMVA 2020* ([arXiv:2005.09535](https://arxiv.org/abs/2005.09535)) — the
+  academic corpus of malicious npm/PyPI packages that grounds this project's
+  threat model in published research.
 - **IANA RDAP bootstrap** — <https://data.iana.org/rdap/dns.json>.
-- **Gemma / Gemini** — narration models; Gemini's free tier is reachable from
-  India (~64 ms verified), with a local Ollama fallback and an offline
-  template beyond that.
+- **Gemma / Gemini** — the reasoning/narration model. Narration runs via the
+  free Gemini API (Gemma 4), a local Ollama fallback, or a deterministic
+  offline template; the model actually used is reported per-run.
 - **MLH Hacktoberfest** — hackathon home.
 
 ## License

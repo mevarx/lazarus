@@ -64,6 +64,8 @@ header {
 .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
 .pill.live { color: var(--low); border-color: rgba(71, 214, 141, 0.35); }
 .pill.live .dot { background: var(--low); }
+.pill.replay { color: #ffcf6b; border-color: rgba(255, 207, 107, 0.4); }
+.pill.replay .dot { background: #ffcf6b; }
 .pill.offline { color: var(--med); border-color: rgba(255, 210, 74, 0.35); }
 .pill.offline .dot { background: var(--med); }
 .btn {
@@ -233,6 +235,7 @@ footer .num { color: var(--muted); }
   </div>
   <div class="header-right">
     <span class="pill" id="pill-mode" title="Last scan mode"><span class="dot"></span>idle</span>
+    <span class="pill" id="pill-src" title="Data source of the current findings"><span class="dot"></span>source…</span>
     <span class="pill offline" id="pill-backend" title="Narration backend"><span class="dot"></span>backend…</span>
     <button class="btn primary" id="run-btn">Run scan</button>
   </div>
@@ -307,6 +310,22 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
+}
+
+// Redact maintainer emails for display: show enough to identify the domain,
+// never the full mailbox. "atiertant@atlantis-software.net" -> "ati****@atlantis-software.net"
+// A bare domain (no @) is shown as-is — it is already public registry data.
+function redactEmail(v) {
+  var s = String(v || "").trim();
+  var at = s.indexOf("@");
+  if (at <= 0) return s;                 // no mailbox part -> nothing to redact
+  var local = s.slice(0, at), dom = s.slice(at);   // dom keeps the "@"
+  var head = local.slice(0, Math.min(3, local.length));
+  return head + "****" + dom;
+}
+
+function redactList(arr) {
+  return (arr || []).map(redactEmail).join(", ");
 }
 function fmt(n) { try { return Number(n || 0).toLocaleString("en-US"); } catch (e) { return String(n || 0); } }
 function sevOf(risk) {
@@ -449,7 +468,7 @@ function cardHtml(f) {
         '<div><div class="k">packages</div><div class="v num">' + esc((f.packages || []).join(", ") || "—") + "</div></div>" +
         '<div><div class="k">dependents</div><div class="v num">' + fmt(f.dependents) + "</div></div>" +
         '<div><div class="k">downloads / wk</div><div class="v num">' + fmt(f.downloads_week) + "</div></div>" +
-        '<div><div class="k">maintainers</div><div class="v num">' + esc((f.maintainers || []).join(", ") || "—") + "</div></div>" +
+        '<div><div class="k">maintainers</div><div class="v num">' + esc(redactList(f.maintainers) || "—") + "</div></div>" +
       "</div>" +
       '<div class="card-foot">' +
         '<button class="btn narrate" onclick="narrate(this)">Narrate with Gemma</button>' +
@@ -504,8 +523,23 @@ function applyFindings(data) {
   pill.prepend(Object.assign(document.createElement("span"), { className: "dot" }));
   pill.classList.toggle("live", backend.indexOf("live") !== -1);
   pill.classList.toggle("offline", backend.indexOf("live") === -1);
+  // Data-source badge: seeded/replay is NOT a live scan — say so visibly.
+  setSourcePill(data.source, data.seeded);
   $("#foot-src").textContent = "findings source: " + (data.source || "?");
   fetchGraph();
+}
+
+function setSourcePill(source, seeded) {
+  var pill = $("#pill-src");
+  pill.querySelectorAll(".dot").forEach(function (d) { d.remove(); });
+  var isSeeded = source === "cached" || source === "seed" || seeded === true;
+  pill.textContent = isSeeded ? "REPLAY · seeded" : "LIVE · fresh scan";
+  pill.prepend(Object.assign(document.createElement("span"), { className: "dot" }));
+  pill.classList.toggle("replay", isSeeded);
+  pill.classList.toggle("live", !isSeeded);
+  pill.title = isSeeded
+    ? "Seeded replay (data/cached_run.json) — not a live scan. The atlantis-software.net case is real & RDAP-verified; companions are realistic."
+    : "Live scan — findings harvested and RDAP-resolved just now.";
 }
 
 function setModePill(mode) {
