@@ -399,6 +399,10 @@ def findings_payload() -> dict:
     return payload
 
 
+class _ClientGone(Exception):
+    """The browser closed the SSE stream. Not an error — unwind quietly."""
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     server_version = "Lazarus/1.0"
@@ -471,13 +475,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def _sse_send(self, event: str, data: dict) -> None:
         frame = (f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n").encode("utf-8")
-        self.wfile.write(f"{len(frame):X}\r\n".encode("ascii") + frame + b"\r\n")
-        self.wfile.flush()
+        try:
+            self.wfile.write(f"{len(frame):X}\r\n".encode("ascii") + frame + b"\r\n")
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, OSError):
+            # Tab closed / network dropped mid-scan. Raising _ClientGone lets
+            # the run unwind cleanly instead of crashing the handler thread.
+            raise _ClientGone("client disconnected") from None
 
     def _sse_heartbeat(self) -> None:
         frame = b": keep-alive\n\n"
-        self.wfile.write(f"{len(frame):X}\r\n".encode("ascii") + frame + b"\r\n")
-        self.wfile.flush()
+        try:
+            self.wfile.write(f"{len(frame):X}\r\n".encode("ascii") + frame + b"\r\n")
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError, OSError):
+            raise _ClientGone("client disconnected") from None
 
     def _sse_end(self) -> None:
         self.wfile.write(b"0\r\n\r\n")
@@ -532,6 +544,8 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     self._run_live(progress, emit_finding, modules)
                     ran_live = True
+                except _ClientGone:
+                    raise  # client hung up — nothing to fall back to
                 except Exception as e:
                     traceback.print_exc()
                     findings_out = []
@@ -548,6 +562,8 @@ class Handler(BaseHTTPRequestHandler):
             }
             _record_run(findings_out, meta)
             self._sse_send("done", meta)
+        except _ClientGone:
+            pass  # browser closed the tab mid-scan — normal, not an error
         except (BrokenPipeError, ConnectionResetError):
             pass
         except Exception as e:
