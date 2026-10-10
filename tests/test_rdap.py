@@ -111,7 +111,41 @@ class RDAPCase(unittest.TestCase):
         rdap.set_transport(router)
         result = rdap.resolve_domain("example.zzzznotatld")
         self.assertFalse(result["registered"])
-        self.assertIn("no RDAP server", result["error"])
+        self.assertIn("no public RDAP server", result["error"])
+
+    # ---------------- fallback map for TLDs missing from IANA bootstrap ----
+    def test_fallback_map_resolves_tld_absent_from_bootstrap(self):
+        """io/es/co are absent from the real IANA bootstrap but have public
+        RDAP servers; the fallback map must route them. (.es is absent from
+        the test fixture BOOTSTRAP too, unlike .io.)"""
+        seen = []
+
+        def router(url, timeout=20, headers=None):
+            seen.append(url)
+            if url == rdap.BOOTSTRAP_URL:
+                return json.dumps(BOOTSTRAP).encode()
+            if "rdap.nic.es" in url:  # the .es fallback endpoint
+                return json.dumps(
+                    {"events": [{"eventAction": "registration",
+                                 "eventDate": "2016-03-04T00:00:00Z"}]}
+                ).encode()
+            raise AssertionError(f"unexpected URL {url}")
+
+        rdap.set_transport(router)
+        result = rdap.resolve_domain("sitnik.es")
+        self.assertTrue(result["registered"])
+        self.assertEqual(result["created"], "2016-03-04T00:00:00Z")
+        self.assertIsNone(result["error"])
+
+    def test_bootstrap_takes_precedence_over_fallback(self):
+        """When the bootstrap DOES know a TLD, it wins over the fallback map."""
+        base = rdap._base_url_for("example.net")
+        self.assertIn("verisign", base)  # from the fake BOOTSTRAP, not a fallback
+
+    def test_known_fallback_tlds_are_https(self):
+        for tld, url in rdap.FALLBACK_SERVERS.items():
+            self.assertTrue(url.startswith("https://"), tld)
+            self.assertTrue(url.endswith("/"), tld)
 
     # ---------------- 404 -> unregistered ----------------
     def test_404_means_unregistered(self):
