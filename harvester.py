@@ -62,8 +62,8 @@ FREE_MAIL_DOMAINS = frozenset(
     }
 )
 
-# Free-text fields look like "Ian Cordasco <graffatcolmingov@gmail.com>, Nate
-# Prewitt <nate.prewitt@gmail.com>" -- or sometimes a bare address.
+# Free-text fields look like "Alice Example <alice@example.com>, Bob
+# Example <bob@example.com>" -- or sometimes a bare address.
 EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 
 # --------------------------------------------------------------------------
