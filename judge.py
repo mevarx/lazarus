@@ -221,6 +221,80 @@ class Judge:
             pass
         return self._narrate_offline(finding)
 
+    def analyze(self, finding: dict) -> dict:
+        """Load-bearing structured analysis of ONE finding.
+
+        Returns JSON that (a) cites the specific evidence behind the risk
+        (dormancy, dependent count, expiry, recent re-registration), and
+        (b) drafts a plain-English disclosure email to the maintainer with a
+        concrete fix. The model is given raw evidence only — never the
+        scorer's verdict — so it must reason, not copy. Falls back to a
+        deterministic template offline.
+        """
+        finding = finding if isinstance(finding, dict) else {}
+        prompt = build_analyze_prompt(finding)
+        text = None
+        try:
+            if self.backend == "gemini":
+                for model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
+                    text = _http_json_text(
+                        GEMINI_BASE_URL.format(model=model),
+                        headers={"Content-Type": "application/json",
+                                 "x-goog-api-key": self.api_key},
+                        body={"contents": [{"parts": [{"text": prompt}]}]},
+                        timeout=max(self.timeout, 60),
+                        extract=_gemini_text,
+                    )
+                    if text:
+                        break
+            elif self.backend == "ollama":
+                text = _http_json_text(
+                    OLLAMA_URL,
+                    headers={"Content-Type": "application/json"},
+                    body={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+                    timeout=max(self.timeout, 90),
+                    extract=_ollama_text,
+                )
+        except Exception:  # noqa: BLE001
+            text = None
+        parsed = _parse_analyze_json(text, finding) if text else None
+        if parsed is None:
+            return self._analyze_offline(finding)
+        parsed["backend"] = self.backend
+        parsed["live"] = True
+        parsed["model"] = self._model_name()
+        return parsed
+
+    def _analyze_offline(self, finding: dict) -> dict:
+        """Deterministic fallback: cite the scorer's own signals and template
+        a disclosure email from them. Honest that it is not model-generated."""
+        domain = str(finding.get("domain") or "the domain")
+        signals = [str(s) for s in (finding.get("signals") or [])]
+        reasoning = [str(r) for r in (finding.get("reasoning") or [])]
+        evidence = signals or reasoning or ["no signals recorded"]
+        email = (
+            f"Subject: Action needed — the email domain behind your npm packages "
+            f"may be at risk\n\n"
+            f"Hi,\n\n"
+            f"Our scanner flagged {domain}, the domain behind the maintainer email "
+            f"for your package(s), as a possible expired/re-registered domain. "
+            f"If you no longer control this mailbox, anyone who does can reset "
+            f"your registry password.\n\n"
+            f"Recommended fix: move your maintainer email to a domain you "
+            f"actively control (or an org-owned address), and rotate any "
+            f"credential tied to the old address.\n\n"
+            f"— Lazarus (automated scan)"
+        )
+        return {
+            "backend": self.backend,
+            "live": False,
+            "model": "offline-template",
+            "evidence": evidence[:5],
+            "risk_reasoning": reasoning[:3] or ["rules-only assessment"],
+            "disclosure_email": email,
+            "confidence": "low",
+        }
+
     def triage(self, findings: list[dict]) -> dict:
         """Independently rank findings by takeover risk from RAW evidence only.
 
@@ -464,6 +538,77 @@ def build_triage_prompt(findings: list[dict]) -> str:
             f"    packages: {', '.join(str(p) for p in (f.get('packages') or [])) or 'none'}",
         ]
     return "\n".join(lines)
+
+
+def build_analyze_prompt(finding: dict) -> str:
+    """Render ONE finding's raw evidence for structured analysis + disclosure.
+
+    Withholds the scorer's verdict (risk/severity/signals) so the model must
+    cite the underlying facts itself. This is what makes the model
+    load-bearing rather than a paraphraser.
+    """
+    rdap = finding.get("rdap") or {}
+    lines = [
+        "You are a supply-chain security analyst. A scanner collected the raw",
+        "evidence below about a package maintainer's email domain. There is NO",
+        "pre-computed risk score — judge it yourself and cite the specific",
+        "facts that matter.",
+        "",
+        f"Domain: {finding.get('domain')}",
+        f"Packages maintained via this domain: {', '.join(str(p) for p in (finding.get('packages') or [])) or 'unknown'}",
+        f"Maintainer dormant (no publish 24mo): {finding.get('maintainer_dormant')}",
+        f"Last publish: {finding.get('last_publish') or 'unknown'}",
+        f"Mail (MX) live on domain: {finding.get('mx_present')}",
+        f"Domain registered: {rdap.get('registered')}",
+        f"Domain created: {rdap.get('created') or 'unknown'}",
+        f"Domain expires: {rdap.get('expires') or 'unknown'}",
+        f"Dependent packages: {_as_int(finding.get('dependents'))}",
+        f"Weekly downloads: {_as_int(finding.get('downloads_week'))}",
+        "",
+        "Reply with ONLY a JSON object, no markdown fence, exactly these keys:",
+        '  "evidence": [ up to 5 short strings, each citing a SPECIFIC fact that',
+        '                drives the risk, e.g. "domain created 2026-05-07, only',
+        '                N days old", "maintainer dormant since <date>",',
+        '                "expires in N days", "N dependent packages" ],',
+        '  "risk_reasoning": [ up to 3 strings explaining the attack path ],',
+        '  "confidence": "high" | "medium" | "low",',
+        '  "disclosure_email": a plain-English email to the maintainer: a',
+        '       subject line, why this matters (domain takeover -> password',
+        '       reset -> malicious publish), and ONE concrete fix. Address it',
+        '       to the maintainer, sign it "Lazarus (automated scan)". Do not',
+        '       include the maintainer\'s email address.',
+    ]
+    return "\n".join(lines)
+
+
+def _parse_analyze_json(text: str | None, finding: dict) -> dict | None:
+    if not text:
+        return None
+    data = _extract_json(text)
+    if not isinstance(data, dict):
+        return None
+    evidence = data.get("evidence")
+    if not isinstance(evidence, list) or not evidence:
+        return None
+    # disclosure_email may be a plain string OR a {subject, body} object —
+    # small models like Gemma 3 often return the structured form. Accept both.
+    email_field = data.get("disclosure_email")
+    if isinstance(email_field, str) and email_field.strip():
+        email = email_field.strip()
+    elif isinstance(email_field, dict):
+        subj = str(email_field.get("subject") or "").strip()
+        bod = str(email_field.get("body") or "").strip()
+        if not (subj or bod):
+            return None
+        email = (f"Subject: {subj}\n\n{bod}" if subj else bod)
+    else:
+        return None
+    return {
+        "evidence": [str(x) for x in evidence][:5],
+        "risk_reasoning": [str(x) for x in (data.get("risk_reasoning") or [])][:3],
+        "confidence": str(data.get("confidence") or "low"),
+        "disclosure_email": email,
+    }
 
 
 def _parse_triage_json(text: str | None, clean: list[dict]) -> dict | None:

@@ -201,6 +201,55 @@ def compute_stats(findings: list[dict]) -> dict:
     }
 
 
+def blast_radius(findings: list[dict], *, min_severity: str = "HIGH") -> dict:
+    """Aggregate the weekly-download reach controlled by at-risk domains.
+
+    Answers: 'one lapsed domain controls packages with X combined weekly
+    downloads.' Only domains at or above ``min_severity`` (CRITICAL/HIGH by
+    default) count as at-risk; downloads are summed across their packages.
+    A domain appears once even if several findings reference it.
+    """
+    order = {"CRITICAL": 3, "HIGH": 2, "MEDIUM": 1, "LOW": 0}
+    threshold = order.get(min_severity.upper(), 2)
+    at_risk_downloads = 0
+    at_risk_dependents = 0
+    at_risk_domains: set[str] = set()
+    at_risk_packages: set[str] = set()
+    worst_domain = None
+    worst_downloads = 0
+    for f in findings:
+        sev = str(f.get("severity") or "LOW").upper()
+        if order.get(sev, 0) < threshold:
+            continue
+        dom = f.get("domain")
+        if not dom:
+            continue
+        at_risk_domains.add(dom)
+        try:
+            dl = int(f.get("downloads_week") or 0)
+        except (TypeError, ValueError):
+            dl = 0
+        try:
+            dep = int(f.get("dependents") or 0)
+        except (TypeError, ValueError):
+            dep = 0
+        at_risk_downloads += dl
+        at_risk_dependents += dep
+        for p in (f.get("packages") or []):
+            at_risk_packages.add(str(p))
+        if dl > worst_downloads:
+            worst_downloads = dl
+            worst_domain = dom
+    return {
+        "at_risk_domains": len(at_risk_domains),
+        "at_risk_packages": len(at_risk_packages),
+        "combined_weekly_downloads": at_risk_downloads,
+        "combined_dependents": at_risk_dependents,
+        "largest_single_domain": worst_domain,
+        "largest_single_downloads": worst_downloads,
+    }
+
+
 class OfflineJudge:
     """Template narrator used until judge.py exists, and whenever the
     configured judge backend is offline. Deterministic, never raises."""
@@ -428,13 +477,11 @@ def cached_payload() -> dict:
     findings = cached.get("findings", [])
     cached["source"] = "cached"
     cached["seeded"] = True
-    # Redact once, up front, so the graph nodes/edges and any narrative text
-    # are built from the masked set — no raw email survives anywhere in the
-    # payload (findings, graph ids/labels, or prose).
     safe = redact_maintainers(findings)
     cached["findings"] = safe
     cached.update(judge_status())
     cached.setdefault("stats", compute_stats(safe))
+    cached.setdefault("blast_radius", blast_radius(safe))
     cached.setdefault("graph", build_graph(safe))
     return cached
 
@@ -448,6 +495,7 @@ def findings_payload() -> dict:
         "seeded": source in ("cached", "seed"),
         "count": len(findings),
         "stats": compute_stats(safe),
+        "blast_radius": blast_radius(safe),
         "updated_at": now_iso(),
     }
     payload.update(judge_status())
@@ -550,6 +598,74 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(b"0\r\n\r\n")
         self.wfile.flush()
         self.close_connection = True
+
+    def _stream_repo_scan(self, content: str) -> None:
+        """Stream a repo-dependency scan: parse the pasted lockfile, resolve
+        every maintainer email domain, score, and emit findings over SSE.
+        A bad file or dead network surfaces as an SSE error, never a crash."""
+        self._sse_start()
+        started = time.time()
+
+        def progress(stage: str, message: str, done: int = 0, total: int = 0) -> None:
+            self._sse_send("progress", {
+                "stage": stage, "message": message,
+                "done": done, "total": total,
+                "elapsed": round(time.time() - started, 1),
+            })
+
+        def emit(f: dict) -> None:
+            self._sse_send("finding", {"finding": redact_maintainers([f])[0]})
+
+        try:
+            lock_mod = _try_import("lockfile")
+            scan_mod = _try_import("repo_scan")
+            if lock_mod is None or scan_mod is None:
+                self._sse_send("failed", {
+                    "message": "scan-repo modules unavailable (lockfile/repo_scan)"
+                })
+                self._sse_end()
+                return
+            try:
+                names = lock_mod.parse_dependencies(content)
+            except lock_mod.LockfileError as exc:
+                self._sse_send("failed", {"message": f"could not parse input: {exc}"})
+                self._sse_end()
+                return
+
+            self._sse_send("start", {
+                "mode": "repo-scan",
+                "timestamp": now_iso(),
+                "note": f"scanning {len(names)} dependencies for maintainer email domains",
+            })
+            progress("deps", f"parsed {len(names)} dependencies", 0, len(names))
+
+            findings = scan_mod.scan_dependencies(names)
+            total = len(findings)
+            progress("score", f"resolved {total} maintainer email domain(s)", total, total)
+            for i, f in enumerate(findings, 1):
+                emit(f)
+                progress("emit", f"finding {i}/{total}: {f.get('domain')}", i, total)
+
+            self._sse_send("done", {
+                "mode": "repo-scan",
+                "finished_at": now_iso(),
+                "elapsed_s": round(time.time() - started, 1),
+                "findings_count": total,
+                "stats": compute_stats(findings),
+            })
+        except _ClientGone:
+            pass
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            try:
+                self._sse_send("failed", {"message": str(e)})
+            except Exception:
+                pass
+        finally:
+            try:
+                self._sse_end()
+            except Exception:
+                self.close_connection = True
 
     def _stream_run(self, query: dict) -> None:
         self._sse_start()
@@ -796,6 +912,39 @@ class Handler(BaseHTTPRequestHandler):
                     return self._send_error_json(404, f"no finding for domain: {domain}")
                 out = narrate_for(finding)
                 return self._send_json({"domain": domain, **out})
+            if parsed.path == "/api/scan-repo":
+                body, err = self._read_json_body()
+                if err:
+                    return self._send_error_json(400, err)
+                content = (body or {}).get("content")
+                if not content or not isinstance(content, str):
+                    return self._send_error_json(
+                        400, 'body must be {"content": "<package.json text>"}'
+                    )
+                return self._stream_repo_scan(content)
+            if parsed.path == "/api/analyze":
+                body, err = self._read_json_body()
+                if err:
+                    return self._send_error_json(400, err)
+                domain = (body or {}).get("domain")
+                if not domain:
+                    return self._send_error_json(400, 'body must be {"domain": "..."}')
+                findings, _ = current_findings()
+                finding = next((f for f in findings if f.get("domain") == domain), None)
+                if finding is None:
+                    finding = find_finding(domain)
+                if finding is None:
+                    return self._send_error_json(404, f"no finding for domain: {domain}")
+                judge = get_judge()
+                if judge is None:
+                    return self._send_error_json(503, "no judge backend available")
+                return self._send_json({"domain": domain, **judge.analyze(finding)})
+            if parsed.path == "/api/triage":
+                findings, _ = current_findings()
+                judge = get_judge()
+                if judge is None:
+                    return self._send_error_json(503, "no judge backend available")
+                return self._send_json(judge.triage(findings))
             return self._send_error_json(404, f"unknown endpoint: {parsed.path}")
         except (BrokenPipeError, ConnectionResetError):
             self.close_connection = True
