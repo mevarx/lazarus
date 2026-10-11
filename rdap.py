@@ -9,7 +9,9 @@ Contract: see INTERFACES.md.
 from __future__ import annotations
 
 import json
+import ipaddress
 import os
+import re
 import threading
 import time
 import urllib.error
@@ -31,18 +33,27 @@ EVENT_KEYS = {
 
 STAGGER_SECONDS = 0.1
 RETRY_STATUSES = frozenset({500, 502, 503, 504, 408, 429})
+MAX_TIMEOUT = 15
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+CACHE_TTL_SECONDS = 60 * 60
 
 Transport = Callable[..., bytes]
 
 _transport: Transport | None = None
+_clock: Callable[[], float] = time.monotonic
+_wall_clock: Callable[[], float] = time.time
+_sleep: Callable[[float], None] | None = None
+_deadline: float | None = None
 
 # TLD -> base URL, filled on first resolve (bootstrap fetched once per process).
 _tld_servers: dict[str, str] | None = None
+_tld_alternates: dict[str, list[str]] = {}
 _tld_lock = threading.Lock()
 
-# Serializes the polite 0.1s stagger across worker threads.
-_stagger_lock = threading.Lock()
-_last_request_at = 0.0
+_host_lock = threading.Lock()
+_host_last_request_at: dict[str, float] = {}
+_cache_lock = threading.Lock()
+_memory_cache: dict[tuple[str, str], tuple[float, dict]] = {}
 
 
 class HttpError(Exception):
@@ -59,35 +70,102 @@ def set_transport(fn: Transport | None) -> None:
     _transport = fn
 
 
+def set_clock(clock: Callable[[], float] | None = None,
+              sleep_fn: Callable[[float], None] | None = None) -> None:
+    """Inject time functions for rate-limit and cache tests."""
+    global _clock, _wall_clock, _sleep
+    _clock = clock or time.monotonic
+    _wall_clock = clock or time.time
+    _sleep = sleep_fn
+
+
+def set_deadline(deadline: float | None) -> None:
+    """Set an absolute monotonic deadline for all HTTP requests in a run."""
+    global _deadline
+    _deadline = deadline
+
+
 def reset_state() -> None:
     """Drop the bootstrap + stagger state (tests)."""
-    global _tld_servers, _last_request_at
+    global _tld_servers, _deadline
     with _tld_lock:
         _tld_servers = None
-    with _stagger_lock:
-        _last_request_at = 0.0
+        _tld_alternates.clear()
+    with _host_lock:
+        _host_last_request_at.clear()
+    with _cache_lock:
+        _memory_cache.clear()
+    _deadline = None
+    set_clock()
+
+
+def normalize_domain(value: object) -> str | None:
+    """Return a safe IDNA hostname, or None for anything unsuitable for RDAP."""
+    if not isinstance(value, str):
+        return None
+    raw = value.strip()
+    if not raw or any(ch.isspace() for ch in raw) or any(ch in raw for ch in "/\\:@?#"):
+        return None
+    raw = raw.rstrip(".").lower()
+    try:
+        domain = raw.encode("idna").decode("ascii").lower()
+    except (UnicodeError, ValueError):
+        return None
+    if len(domain) > 253 or "." not in domain:
+        return None
+    try:
+        ipaddress.ip_address(domain.strip("[]"))
+        return None
+    except ValueError:
+        pass
+    labels = domain.split(".")
+    if any(len(label) > 63 or not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", label)
+           for label in labels):
+        return None
+    return domain
 
 
 # --------------------------------------------------------------------------
 # HTTP
 # --------------------------------------------------------------------------
+def _rate_limit(url: str) -> None:
+    host = urllib.parse.urlsplit(url).hostname or ""
+    with _host_lock:
+        now = _clock()
+        wait = STAGGER_SECONDS - (now - _host_last_request_at.get(host, 0.0))
+        if wait > 0:
+            (_sleep or time.sleep)(wait)
+        _host_last_request_at[host] = _clock()
+
+
 def _request(url: str, timeout: int = 20, headers: dict | None = None) -> bytes:
+    timeout = max(1, min(int(timeout), MAX_TIMEOUT))
+    if _deadline is not None:
+        remaining = _deadline - _clock()
+        if remaining <= 0:
+            raise HttpError("harvest time budget exhausted")
+        timeout = max(1, min(timeout, int(remaining)))
+    _rate_limit(url)
     merged = dict(headers or {})
     merged.setdefault("User-Agent", USER_AGENT)
     if _transport is not None:
-        return _transport(url, timeout=timeout, headers=merged)
+        body = _transport(url, timeout=timeout, headers=merged)
+        if len(body) > MAX_RESPONSE_BYTES:
+            raise HttpError("RDAP response exceeded size limit")
+        return body
     req = urllib.request.Request(url, headers=merged)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read()
+            try:
+                body = resp.read(MAX_RESPONSE_BYTES + 1)
+            except TypeError:
+                body = resp.read()
+            if len(body) > MAX_RESPONSE_BYTES:
+                raise HttpError("RDAP response exceeded size limit")
+            return body
     except urllib.error.HTTPError as exc:
-        detail = ""
-        try:
-            detail = exc.read().decode("utf-8", "replace")[:200]
-        except Exception:
-            pass
         raise HttpError(
-            f"HTTP {exc.code} for {url}{': ' + detail if detail else ''}",
+            f"HTTP {exc.code} for {url}",
             code=exc.code,
         ) from exc
     except urllib.error.URLError as exc:
@@ -100,22 +178,10 @@ def _get_json(url: str, timeout: int = 20) -> Any:
     return json.loads(_request(url, timeout=timeout).decode("utf-8"))
 
 
-def _stagger() -> None:
-    """Hold each worker so requests stay ~0.1s apart, globally."""
-    global _last_request_at
-    with _stagger_lock:
-        now = time.monotonic()
-        wait = STAGGER_SECONDS - (now - _last_request_at)
-        if wait > 0:
-            time.sleep(wait)
-        _last_request_at = time.monotonic()
-
-
 def _get_json_retrying(url: str, timeout: int = 20) -> Any:
     """GET json, retrying once on 5xx/timeout/network flake."""
     last: Exception = HttpError("request failed")
     for attempt in (1, 2):
-        _stagger()
         try:
             return _get_json(url, timeout=timeout)
         except HttpError as exc:
@@ -128,7 +194,7 @@ def _get_json_retrying(url: str, timeout: int = 20) -> Any:
         except Exception as exc:  # malformed json etc. -- retrying won't help
             raise
         if attempt == 1:
-            time.sleep(STAGGER_SECONDS)
+            (_sleep or time.sleep)(STAGGER_SECONDS)
     raise last
 
 
@@ -193,17 +259,24 @@ def _bootstrap() -> dict[str, str]:
             return _tld_servers
         data = _get_json(BOOTSTRAP_URL)
         mapping: dict[str, str] = {}
+        alternates: dict[str, list[str]] = {}
         for entry in (data or {}).get("services") or []:
             if not isinstance(entry, list) or len(entry) < 2:
                 continue
             tlds, urls = entry[0], entry[1]
             if not urls:
                 continue
-            base = urls[0].rstrip("/") + "/"
+            bases = [u.rstrip("/") + "/" for u in urls
+                     if isinstance(u, str) and u.startswith("https://")]
+            if not bases:
+                continue
+            base = bases[0]
             for tld in tlds or []:
                 if isinstance(tld, str) and tld:
                     mapping.setdefault(tld.lower(), base)
+                    alternates.setdefault(tld.lower(), list(bases[1:]))
         _tld_servers = mapping
+        _tld_alternates.update(alternates)
         return _tld_servers
 
 
@@ -217,6 +290,17 @@ def _base_url_for(domain: str) -> str | None:
     return FALLBACK_SERVERS.get(tld)
 
 
+def alternate_rdap_urls(domain: str, primary_url: str | None = None) -> list[str]:
+    """Return distinct bootstrap/fallback RDAP bases suitable for a cross-check."""
+    tld = domain.rsplit(".", 1)[-1].lower() if "." in domain else domain.lower()
+    _bootstrap()
+    candidates = list(_tld_alternates.get(tld, []))
+    fallback = FALLBACK_SERVERS.get(tld)
+    if fallback:
+        candidates.append(fallback)
+    return list(dict.fromkeys(url for url in candidates if url != primary_url))
+
+
 # --------------------------------------------------------------------------
 # Parsing
 # --------------------------------------------------------------------------
@@ -228,6 +312,9 @@ def _blank(domain: str) -> dict:
         "expires": None,
         "status": [],
         "error": None,
+        "bootstrap_status": "unknown",
+        "related_urls": [],
+        "alternate_urls": [],
     }
 
 
@@ -248,15 +335,25 @@ def _parse_events(events: list[dict]) -> dict[str, str]:
 # --------------------------------------------------------------------------
 def resolve_domain(domain: str) -> dict:
     """Look up one domain. Never raises -- errors land in ``result["error"]``."""
-    result = _blank(domain)
-    if not domain or not str(domain).strip():
+    result = _blank("")
+    if not isinstance(domain, str) or not domain.strip():
         result["error"] = "empty domain"
         return result
-    domain = str(domain).strip().lower().strip(".")
+    normalized = normalize_domain(domain)
+    if normalized is None:
+        result["error"] = "invalid domain"
+        return result
+    domain = normalized
     result["domain"] = domain
 
     # --- route through the IANA bootstrap ---
     try:
+        servers = _bootstrap()
+        tld = domain.rsplit(".", 1)[-1]
+        result["bootstrap_status"] = (
+            "present" if tld in servers else
+            "fallback" if tld in FALLBACK_SERVERS else "missing"
+        )
         base = _base_url_for(domain)
     except Exception as exc:
         result["error"] = f"bootstrap failed: {exc}"
@@ -269,6 +366,8 @@ def resolve_domain(domain: str) -> dict:
         return result
 
     url = f"{base}domain/{urllib.parse.quote(domain)}"
+    result["primary_url"] = base
+    result["alternate_urls"] = alternate_rdap_urls(domain, base)
     try:
         payload = _get_json_retrying(url)
     except HttpError as exc:
@@ -289,7 +388,35 @@ def resolve_domain(domain: str) -> dict:
     result.update(_parse_events(payload.get("events") or []))
     status = payload.get("status")
     result["status"] = [str(s) for s in status] if isinstance(status, list) else []
+    related = []
+    for link in payload.get("links") or []:
+        if (isinstance(link, dict) and link.get("rel") == "related"
+                and isinstance(link.get("href"), str)
+                and link["href"].startswith("https://")):
+            related.append(link["href"])
+    result["related_urls"] = list(dict.fromkeys(related))
     return result
+
+
+def lookup_domain_at(domain: str, base_url: str) -> dict:
+    """Probe a second RDAP base, returning only registration and date fields."""
+    normalized = normalize_domain(domain)
+    if normalized is None or not isinstance(base_url, str) or not base_url.startswith("https://"):
+        return {"registered": None, "created": None, "error": "invalid lookup target"}
+    url = (base_url if "/domain/" in urllib.parse.urlsplit(base_url).path
+           else base_url.rstrip("/") + "/domain/" + urllib.parse.quote(normalized, safe=""))
+    try:
+        payload = _get_json_retrying(url)
+    except HttpError as exc:
+        if exc.code == 404:
+            return {"registered": False, "created": None, "error": None}
+        return {"registered": None, "created": None, "error": str(exc)}
+    except Exception as exc:
+        return {"registered": None, "created": None, "error": str(exc)}
+    if not isinstance(payload, dict):
+        return {"registered": None, "created": None, "error": "unexpected RDAP payload"}
+    return {"registered": True, "created": _parse_events(payload.get("events") or []).get("created"),
+            "error": None}
 
 
 def load_cache(cache_path: str) -> dict[str, dict]:
@@ -327,17 +454,37 @@ def resolve_domains(
     wanted: list[str] = []
     seen: set[str] = set()
     for raw in domains or []:
-        if not isinstance(raw, str):
-            continue
-        domain = raw.strip().lower().strip(".")
+        domain = normalize_domain(raw)
         if domain and domain not in seen:
             seen.add(domain)
             wanted.append(domain)
     if not wanted:
         return []
 
-    cache = load_cache(cache_path)
-    pending = [d for d in wanted if d not in cache]
+    path_key = os.path.abspath(cache_path)
+    disk_cache = load_cache(cache_path)
+    now = _clock()
+    wall_now = _wall_clock()
+    cache: dict[str, dict] = {}
+    cached_results: dict[str, dict] = {}
+    for domain in wanted:
+        key = (path_key, domain)
+        with _cache_lock:
+            memory = _memory_cache.get(key)
+        if memory and now - memory[0] < CACHE_TTL_SECONDS:
+            cached_results[domain] = dict(memory[1])
+            cache[domain] = dict(memory[1], _cached_at=wall_now)
+            continue
+        stored = disk_cache.get(domain)
+        cached_at = stored.get("_cached_at") if isinstance(stored, dict) else None
+        if isinstance(cached_at, (int, float)) and 0 <= wall_now - cached_at < CACHE_TTL_SECONDS:
+            clean = dict(stored)
+            clean.pop("_cached_at", None)
+            cached_results[domain] = clean
+            cache[domain] = dict(clean, _cached_at=cached_at)
+            with _cache_lock:
+                _memory_cache[key] = (now, clean)
+    pending = [d for d in wanted if d not in cached_results]
 
     lock = threading.Lock()
 
@@ -346,7 +493,11 @@ def resolve_domains(
         # Transient errors are retried on the next run, not cached.
         if out.get("error") is None:
             with lock:
-                cache[domain] = out
+                cache[domain] = dict(out, _cached_at=_wall_clock())
+                cached_results[domain] = out
+                with _cache_lock:
+                    _memory_cache[(path_key, domain)] = (_clock(), out)
+                save_cache(cache_path, cache)
         return out
 
     if pending:
@@ -363,7 +514,7 @@ def resolve_domains(
         if domain in fresh_by_domain:
             results.append(fresh_by_domain[domain])
         else:
-            results.append(dict(cache[domain]))
+            results.append(dict(cached_results[domain]))
     return results
 
 
@@ -374,10 +525,17 @@ __all__ = [
     "STAGGER_SECONDS",
     "USER_AGENT",
     "HttpError",
+    "MAX_RESPONSE_BYTES",
+    "MAX_TIMEOUT",
+    "alternate_rdap_urls",
     "load_cache",
+    "lookup_domain_at",
+    "normalize_domain",
     "reset_state",
     "resolve_domain",
     "resolve_domains",
     "save_cache",
     "set_transport",
+    "set_clock",
+    "set_deadline",
 ]

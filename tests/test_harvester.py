@@ -65,6 +65,41 @@ class TransportCase(unittest.TestCase):
     def tearDown(self):
         harvester.set_transport(None)
 
+    def test_package_name_validation(self):
+        for hostile in ("../x", "a b", "http://x", "name/extra", "x" * 300):
+            self.assertFalse(harvester.validate_package_name(hostile, "npm"), hostile)
+        self.assertTrue(harvester.validate_package_name("@scope/name", "npm"))
+        self.assertTrue(harvester.validate_package_name("valid_project-1", "pypi"))
+        self.assertFalse(harvester.validate_package_name("../x", "pypi"))
+
+    def test_response_size_timeout_and_ttl_cache(self):
+        now = [10.0]
+        calls = []
+        timeouts = []
+
+        def sleep_for(seconds):
+            now[0] += seconds
+
+        def fake(url, timeout=20, headers=None):
+            calls.append(url)
+            timeouts.append(timeout)
+            return b"ok"
+
+        harvester.set_clock(lambda: now[0], sleep_for)
+        harvester.set_transport(fake)
+        harvester._request("https://registry.example/a", timeout=999)
+        harvester._request("https://registry.example/a")
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(timeouts[0], harvester.MAX_TIMEOUT)
+        now[0] += harvester.CACHE_TTL_SECONDS + 1
+        harvester._request("https://registry.example/a")
+        self.assertEqual(len(calls), 2)
+
+        harvester.set_transport(lambda url, timeout=20, headers=None:
+                                b"x" * (harvester.MAX_RESPONSE_BYTES + 1))
+        with self.assertRaises(ValueError):
+            harvester._request("https://registry.example/oversized")
+
 
 class TestNpmHarvest(TransportCase):
     def test_pagination_and_dependents_and_bulk_downloads(self):

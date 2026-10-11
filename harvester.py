@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import json
 import re
+import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -33,6 +35,10 @@ NPM_BULK_SIZE = 50
 # popularity:1 result set is finite; this is a runaway guard, not a limit.
 NPM_MAX_PAGES = 40
 PYPI_FETCH_WORKERS = 8
+MAX_TIMEOUT = 12
+MAX_RESPONSE_BYTES = 8 * 1024 * 1024
+CACHE_TTL_SECONDS = 15 * 60
+HOST_INTERVAL_SECONDS = 0.1
 
 # --------------------------------------------------------------------------
 # Free-mail providers -- these domains can never "expire", so they carry no
@@ -66,22 +72,95 @@ EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
 Transport = Callable[..., bytes]
 
 _transport: Transport | None = None
+_clock: Callable[[], float] = time.monotonic
+_sleep: Callable[[float], None] = time.sleep
+_deadline: float | None = None
+_rate_lock = threading.Lock()
+_host_last_request: dict[str, float] = {}
+_cache_lock = threading.Lock()
+_response_cache: dict[str, tuple[float, bytes]] = {}
 
 
 def set_transport(fn: Transport | None) -> None:
     """Install a fake transport (tests). ``fn(url, timeout=20, headers=None)``."""
     global _transport
     _transport = fn
+    with _cache_lock:
+        _response_cache.clear()
+    with _rate_lock:
+        _host_last_request.clear()
+
+
+def set_clock(clock: Callable[[], float] | None = None,
+              sleep_fn: Callable[[float], None] | None = None) -> None:
+    """Inject time functions for cache and per-host rate-limit tests."""
+    global _clock, _sleep
+    _clock = clock or time.monotonic
+    _sleep = sleep_fn or time.sleep
+
+
+def set_deadline(deadline: float | None) -> None:
+    """Set an absolute monotonic deadline for all HTTP requests in a run."""
+    global _deadline
+    _deadline = deadline
+
+
+def validate_package_name(name: object, ecosystem: str = "npm") -> bool:
+    """Accept package path segments only; npm scopes are the sole slash case."""
+    if not isinstance(name, str) or not name or len(name) > 214 or name.strip() != name:
+        return False
+    if ecosystem == "npm":
+        if name.startswith("@"):
+            parts = name[1:].split("/")
+            if len(parts) != 2 or any(not part or part in {".", ".."} for part in parts):
+                return False
+            return all(re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._~-]*", part) for part in parts)
+        return ("/" not in name and name not in {".", ".."}
+                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._~-]*", name) is not None)
+    if ecosystem == "pypi":
+        return ("/" not in name and name not in {".", ".."}
+                and re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?", name) is not None)
+    return False
+
+
+def _limit_host(url: str) -> None:
+    host = urllib.parse.urlsplit(url).hostname or ""
+    with _rate_lock:
+        now = _clock()
+        delay = HOST_INTERVAL_SECONDS - (now - _host_last_request.get(host, 0.0))
+        if delay > 0:
+            _sleep(delay)
+        _host_last_request[host] = _clock()
 
 
 def _request(url: str, timeout: int = 20, headers: dict | None = None) -> bytes:
+    timeout = max(1, min(int(timeout), MAX_TIMEOUT))
+    if _deadline is not None:
+        remaining = _deadline - _clock()
+        if remaining <= 0:
+            raise TimeoutError("harvest time budget exhausted")
+        timeout = max(1, min(timeout, int(remaining)))
+    with _cache_lock:
+        cached = _response_cache.get(url)
+    if cached and _clock() - cached[0] < CACHE_TTL_SECONDS:
+        return cached[1]
+    _limit_host(url)
     if _transport is not None:
-        return _transport(url, timeout=timeout, headers=headers or {})
-    req = urllib.request.Request(
-        url, headers=dict(headers or {}, **{"User-Agent": USER_AGENT})
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return resp.read()
+        body = _transport(url, timeout=timeout, headers=dict(headers or {}))
+    else:
+        req = urllib.request.Request(
+            url, headers=dict(headers or {}, **{"User-Agent": USER_AGENT})
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            body = resp.read(MAX_RESPONSE_BYTES + 1)
+    if len(body) > MAX_RESPONSE_BYTES:
+        raise ValueError("package registry response exceeded size limit")
+    with _cache_lock:
+        _response_cache[url] = (_clock(), body)
+        if len(_response_cache) > 2048:
+            oldest = min(_response_cache, key=lambda key: _response_cache[key][0])
+            _response_cache.pop(oldest, None)
+    return body
 
 
 def _get_json(url: str, timeout: int = 20) -> Any:
@@ -156,13 +235,15 @@ def _npm_bulk_downloads(names: list[str]) -> dict[str, int]:
     if not names:
         return out
 
+    names = [n for n in names if validate_package_name(n, "npm")]
     unscoped = [n for n in names if "/" not in n]
     scoped = [n for n in names if "/" in n]
 
     for start in range(0, len(unscoped), NPM_BULK_SIZE):
         chunk = unscoped[start : start + NPM_BULK_SIZE]
         try:
-            payload = _get_json(NPM_DOWNLOADS_URL + ",".join(chunk))
+            encoded = ",".join(urllib.parse.quote(n, safe="") for n in chunk)
+            payload = _get_json(NPM_DOWNLOADS_URL + encoded)
         except Exception:
             # Downloads are a bonus signal; never lose the harvest over them.
             continue
@@ -195,7 +276,7 @@ def _npm_bulk_downloads(names: list[str]) -> dict[str, int]:
 def _npm_item(obj: dict) -> dict | None:
     pkg = obj.get("package") or {}
     name = pkg.get("name")
-    if not name:
+    if not validate_package_name(name, "npm"):
         return None
     maintainers = []
     for person in pkg.get("maintainers") or []:
@@ -261,11 +342,11 @@ def harvest_npm(max_packages: int = 500) -> list[dict]:
 # --------------------------------------------------------------------------
 def _pypi_item(row: dict) -> dict | None:
     project = row.get("project")
-    if not project:
+    if not validate_package_name(project, "pypi"):
         return None
     try:
         packument = _get_json(
-            PYPI_PACKUMENT_URL.format(package=urllib.parse.quote(project))
+            PYPI_PACKUMENT_URL.format(package=urllib.parse.quote(project, safe=""))
         )
     except Exception:
         return None
@@ -303,7 +384,8 @@ def harvest_pypi(max_packages: int = 200) -> list[dict]:
     except Exception:
         return []
     rows = (seed or {}).get("rows") or []
-    rows = [r for r in rows if isinstance(r, dict) and r.get("project")][:limit]
+    rows = [r for r in rows if isinstance(r, dict)
+            and validate_package_name(r.get("project"), "pypi")][:limit]
     if not rows:
         return []
 
@@ -325,4 +407,7 @@ __all__ = [
     "harvest_npm",
     "harvest_pypi",
     "set_transport",
+    "set_clock",
+    "set_deadline",
+    "validate_package_name",
 ]

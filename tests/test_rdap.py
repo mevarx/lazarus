@@ -583,6 +583,63 @@ class TestCacheHelpers(RDAPCase):
                 sorted(os.listdir(tmp)), ["c.json"], "temp file should be replaced"
             )
 
+    def test_domain_validation_and_idna_normalization(self):
+        self.assertEqual(rdap.normalize_domain(" EXAMPLE.NET. "), "example.net")
+        self.assertTrue(rdap.normalize_domain("bücher.example").startswith("xn--"))
+        for hostile in ("../x", "a b", "http://x", "127.0.0.1", "x" * 300):
+            self.assertIsNone(rdap.normalize_domain(hostile), hostile)
+        result = rdap.resolve_domain("http://x")
+        self.assertEqual(result["error"], "invalid domain")
+
+    def test_response_size_and_timeout_caps(self):
+        seen = []
+
+        def fake(url, timeout=20, headers=None):
+            seen.append(timeout)
+            return b"x" * (rdap.MAX_RESPONSE_BYTES + 1)
+
+        rdap.set_transport(fake)
+        with self.assertRaises(rdap.HttpError):
+            rdap._request("https://example.test/data", timeout=999)
+        self.assertEqual(seen, [rdap.MAX_TIMEOUT])
+
+    def test_per_host_limiter_with_injected_clock(self):
+        now = [10.0]
+        sleeps = []
+
+        def sleep_for(seconds):
+            sleeps.append(seconds)
+            now[0] += seconds
+
+        rdap.set_clock(lambda: now[0], sleep_for)
+        rdap.set_transport(lambda url, timeout=20, headers=None: b"ok")
+        rdap._request("https://one.example/a")
+        rdap._request("https://one.example/b")
+        rdap._request("https://two.example/a")
+        self.assertEqual(len(sleeps), 1)
+        self.assertAlmostEqual(sleeps[0], rdap.STAGGER_SECONDS)
+
+    def test_domain_cache_ttl_with_injected_clock(self):
+        now = [100.0]
+        calls = {"domain": 0}
+
+        def fake(url, timeout=20, headers=None):
+            if url == rdap.BOOTSTRAP_URL:
+                return json.dumps(BOOTSTRAP).encode()
+            calls["domain"] += 1
+            return json.dumps(domain_payload()).encode()
+
+        rdap.set_clock(lambda: now[0], lambda seconds: now.__setitem__(0, now[0] + seconds))
+        rdap.set_transport(fake)
+        with tempfile.TemporaryDirectory() as tmp:
+            cache = os.path.join(tmp, "rdap.json")
+            rdap.resolve_domains(["a.net"], cache)
+            rdap.resolve_domains(["a.net"], cache)
+            self.assertEqual(calls["domain"], 1)
+            now[0] += rdap.CACHE_TTL_SECONDS + 1
+            rdap.resolve_domains(["a.net"], cache)
+            self.assertEqual(calls["domain"], 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
