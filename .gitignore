@@ -4,3 +4,9 @@ __pycache__/
 data/last_run.json
 data/rdap_cache.json
 .env
+
+# web dashboard
+web/node_modules/
+web/dist/
+web/*.tsbuildinfo
+web/.vite/
