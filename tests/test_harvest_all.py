@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -16,6 +17,24 @@ from tools import harvest_all  # noqa: E402
 
 
 class HarvestOutputCase(unittest.TestCase):
+    def test_committed_harvest_has_no_addresses_or_maintainer_fields(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "harvest.json"
+        encoded = path.read_text(encoding="utf-8")
+        payload = json.loads(encoded)
+        self.assertIsNone(re.search(r"@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", encoded))
+
+        def keys(value):
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    yield key.lower()
+                    yield from keys(child)
+            elif isinstance(value, list):
+                for child in value:
+                    yield from keys(child)
+
+        forbidden = {"maintainers", "maintainer_emails", "email", "handle"}
+        self.assertTrue(forbidden.isdisjoint(keys(payload)))
+
     def test_build_and_payload_remove_all_maintainer_fields(self):
         item = {
             "package": "safe-package",
