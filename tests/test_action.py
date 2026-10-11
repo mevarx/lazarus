@@ -63,13 +63,17 @@ class GitHubActionTests(unittest.TestCase):
             args_file = root / "args.txt"
             env = {
                 **os.environ,
-                "PATH": str(bindir) + os.pathsep + os.environ.get("PATH", ""),
+                # Invoke the fake interpreter by absolute path via PYTHON so the
+                # test is hermetic: on Windows a bare "python" resolves to the
+                # system/venv interpreter (or a Store alias) before the temp
+                # dir on PATH, so PATH-shadowing the name is unreliable.
+                "PYTHON": str(fake_python),
                 "LAZARUS_WARN_ONLY": warn_only,
                 "FAKE_EXIT": str(exit_code),
                 "FAKE_ARGS": str(args_file),
             }
             result = subprocess.run(
-                ["bash", "-c", self.run_block], cwd=root, env=env,
+                ["sh", "-c", self.run_block], cwd=root, env=env,
                 text=True, capture_output=True, check=False,
             )
             logged = args_file.read_text().strip() if args_file.exists() else ""

@@ -195,7 +195,10 @@ class BackendSelectionTests(unittest.TestCase):
         judge = Judge("auto")  # resolves per environment; narrate must not raise
         out = judge.narrate(SAMPLE_FINDING)
         self.assertTrue({"verdict", "narrative", "recommendation"}.issubset(out))
-        self.assertIn("atlantis-software.net", out["verdict"])
+        # The verdict must name the domain. Case-insensitive: a live model may
+        # capitalise it ("Atlantis-software.net") while the template keeps the
+        # raw lowercase form — either satisfies the contract.
+        self.assertIn("atlantis-software.net", out["verdict"].lower())
 
 
 class GeminiRequestTests(unittest.TestCase):

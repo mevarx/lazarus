@@ -45,7 +45,7 @@ jobs:
           fi
 
           set +e
-          python lazarus.py check "$manifest" --json > lazarus-report.json
+          "${PYTHON:-python}" lazarus.py check "$manifest" --json > lazarus-report.json
           status=$?
           set -e
           if [[ "$status" -eq 0 ]]; then

@@ -17,3 +17,6 @@ data/harvest.local.json
 # local agent/runtime scratch
 .hoplite/runtime/
 
+
+# web/ is not used on this branch (static frontend lives in static/)
+web/
