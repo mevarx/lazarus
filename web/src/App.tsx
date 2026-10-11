@@ -149,7 +149,9 @@ function Dashboard() {
           setScan((s) => ({ ...s, status: 'error', error: event.data.message }))
         }
       },
-      { limit: 25 },
+      // refresh: true re-queries RDAP for every domain so re-registration /
+      // expiry dates update instead of replaying the RDAP cache.
+      { limit: 25, refresh: true },
     )
       .then(async () => {
         try {

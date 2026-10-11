@@ -317,12 +317,15 @@ def save_cache(cache_path: str, cache: dict[str, dict]) -> None:
 
 
 def resolve_domains(
-    domains: list[str], cache_path: str, concurrency: int = 8
+    domains: list[str], cache_path: str, concurrency: int = 8,
+    force: bool = False,
 ) -> list[dict]:
     """Resolve many domains concurrently, caching every deterministic result.
 
-    Cached domains are never re-fetched. Transient failures (``error`` set) are
-    not persisted, so the next run retries them.
+    Cached domains are never re-fetched *unless* ``force`` is True, which
+    re-queries RDAP for every requested domain (used by a "force refresh"
+    scan so re-registration / expiry dates actually update). Transient
+    failures (``error`` set) are not persisted, so the next run retries them.
     """
     wanted: list[str] = []
     seen: set[str] = set()
@@ -337,7 +340,7 @@ def resolve_domains(
         return []
 
     cache = load_cache(cache_path)
-    pending = [d for d in wanted if d not in cache]
+    pending = wanted if force else [d for d in wanted if d not in cache]
 
     lock = threading.Lock()
 

@@ -185,7 +185,7 @@ export function DependencyGraph({ graph, selectedDomain, onSelectDomain }: Graph
             const color =
               p.type === 'domain' ? SEVERITY_COLOR[severityOf(p.risk)] : NODE_COLOR[p.type]
             const isActive = active === p.id
-            const fontSize = p.type === 'domain' ? 12 : 9
+            const fontSize = p.type === 'domain' ? 13 : 11
             return (
               <g
                 key={p.id}
@@ -207,8 +207,11 @@ export function DependencyGraph({ graph, selectedDomain, onSelectDomain }: Graph
                   <text
                     y={-p.r - 6}
                     textAnchor="middle"
-                    className="fill-foreground"
-                    style={{ fontSize, fontWeight: p.type === 'domain' ? 600 : 400 }}
+                    fill="#f4f7fb"
+                    stroke="hsl(var(--background))"
+                    strokeWidth={3}
+                    paintOrder="stroke"
+                    style={{ fontSize, fontWeight: p.type === 'domain' ? 700 : 500 }}
                   >
                     {p.label.length > 26 ? p.label.slice(0, 25) + '…' : p.label}
                   </text>

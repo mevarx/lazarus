@@ -716,7 +716,8 @@ class Handler(BaseHTTPRequestHandler):
             ran_live = False
             if live_ok:
                 try:
-                    self._run_live(progress, emit_finding, modules)
+                    force = query.get("refresh", [""])[0] == "1"
+                    self._run_live(progress, emit_finding, modules, force=force)
                     ran_live = True
                 except _ClientGone:
                     raise  # client hung up — nothing to fall back to
@@ -770,7 +771,7 @@ class Handler(BaseHTTPRequestHandler):
             emit_finding(finding)
             progress("emit", f"finding {i}/{total}: {finding.get('domain')}", i, total)
 
-    def _run_live(self, progress, emit_finding, modules) -> None:
+    def _run_live(self, progress, emit_finding, modules, force: bool = False) -> None:
         harvester = modules["harvester"]
         rdap_mod = modules["rdap"]
         scorer = modules["scorer"]
@@ -826,8 +827,15 @@ class Handler(BaseHTTPRequestHandler):
         progress("domains", f"{len(emails)} maintainer emails -> {len(domains)} unique domains (free mail excluded)", len(domains), len(domains))
 
         progress("rdap", "resolving registrations via IANA RDAP bootstrap", 0, len(domains))
-        rdap_results = rdap_mod.resolve_domains(domains, str(RDAP_CACHE_PATH))
-        progress("rdap", f"resolved {len(rdap_results)} domains", len(rdap_results), len(domains))
+        rdap_results = rdap_mod.resolve_domains(
+            domains, str(RDAP_CACHE_PATH), force=force
+        )
+        progress(
+            "rdap",
+            f"{'re-resolved' if force else 'resolved'} {len(rdap_results)} domains"
+            + (" (forced refresh)" if force else ""),
+            len(rdap_results), len(domains),
+        )
 
         rdap_by_domain = {r.get("domain"): r for r in rdap_results}
         findings: list[dict] = []

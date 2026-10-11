@@ -81,10 +81,11 @@ export async function narrate(
  */
 export function runScan(
   onEvent: (event: RunEvent) => void,
-  opts: { limit?: number; signal?: AbortSignal } = {},
+  opts: { limit?: number; refresh?: boolean; signal?: AbortSignal } = {},
 ): Promise<void> {
   const params = new URLSearchParams()
   if (opts.limit) params.set('limit', String(opts.limit))
+  if (opts.refresh) params.set('refresh', '1')
   const url = `${BASE}/run${params.toString() ? `?${params}` : ''}`
 
   return new Promise((resolve) => {
