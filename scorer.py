@@ -44,6 +44,7 @@ POINTS_DEPENDENTS_NOTABLE = 10
 POINTS_DOWNLOADS_POPULAR = 10
 POINTS_MAINTAINER_DORMANT = 15
 POINTS_MX_REREGISTERED = 10
+POINTS_ABANDONED_LONGTAIL = 25  # no publish in 48+ months on a custom domain
 
 # --- Thresholds ---------------------------------------------------------------
 CREATED_AGE_DAYS = 180
@@ -52,6 +53,7 @@ EXPIRES_IMMINENT_DAYS = 30
 DEPENDENTS_MAJOR = 1000
 DEPENDENTS_NOTABLE = 100
 DOWNLOADS_POPULAR = 100_000
+ABANDONED_LONGTAIL_DAYS = 1460  # 48 months without a publish
 
 RISK_CAP = 100
 
@@ -204,6 +206,21 @@ def score_finding(finding: dict, *, now: datetime | None = None) -> dict:
             "dormant maintainer",
             "Maintainer has not published in 24+ months, so a domain-loss "
             "event would likely go unnoticed (+15).",
+        )
+
+    # --- Long-tail abandonment --------------------------------------------------
+    # A package untouched for 48+ months whose maintainer uses a custom
+    # (non-free-mail) domain is the canonical lapsed-domain candidate: the
+    # maintainer has moved on and the personal domain can quietly expire.
+    # The caller sets last_publish_days (days since last registry publish).
+    ltp_days = _as_int(finding.get("last_publish_days"))
+    if ltp_days >= ABANDONED_LONGTAIL_DAYS and not finding.get("free_mail_only"):
+        fire(
+            POINTS_ABANDONED_LONGTAIL,
+            "abandoned long-tail package",
+            f"No publish in {ltp_days} days (>= {ABANDONED_LONGTAIL_DAYS}d) and "
+            "maintainer is on a custom domain — a prime lapsed-domain target "
+            f"(+{POINTS_ABANDONED_LONGTAIL}).",
         )
 
     if finding.get("mx_present") and reregistered:
