@@ -40,10 +40,10 @@ class LockfileTests(unittest.TestCase):
 class MaskEmailTests(unittest.TestCase):
     def test_masks_mailbox_keeps_domain(self):
         self.assertEqual(repo_scan.mask_email("atiertant@atlantis-software.net"),
-                         "ati***@atlantis-software.net")
+                         "***@atlantis-software.net")
 
     def test_short_local(self):
-        self.assertEqual(repo_scan.mask_email("a@b.com"), "a***@b.com")
+        self.assertEqual(repo_scan.mask_email("a@b.com"), "***@b.com")
 
     def test_no_at_passthrough(self):
         self.assertEqual(repo_scan.mask_email("atlantis-software.net"),

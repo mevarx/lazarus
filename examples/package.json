@@ -1,0 +1,9 @@
+{
+  "name": "lazarus-example",
+  "private": true,
+  "dependencies": {
+    "express": "*",
+    "lodash": "*",
+    "qs": "*"
+  }
+}
