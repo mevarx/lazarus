@@ -1,20 +1,27 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "recorded_at": "2026-10-11T01:22:16Z",
-  "score_as_of": "2026-05-13T23:59:59Z",
-  "sources": {
-    "rdap_atlantis": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
-    "rdap_npmjs": "https://rdap.verisign.com/com/v1/domain/npmjs.com",
-    "rdap_python": "https://rdap.org/domain/python.org",
-    "npm_node_ipc": "https://registry.npmjs.org/node-ipc",
-    "npm_downloads_node_ipc": "https://api.npmjs.org/downloads/point/last-week/node-ipc",
-    "depi_report": "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ",
-    "stepsecurity_report": "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack"
-  },
+  "score_as_of": "2026-10-11T01:54:02Z",
+  "rdap_bootstrap_source_url": "https://data.iana.org/rdap/dns.json",
   "selection_notes": [
-    "One positive domain is included: atlantis-software.net, linked by public incident reporting to malicious node-ipc releases. The account-takeover mechanism is a reported hypothesis, not direct observation.",
-    "Two negative controls are long-registered domains with active RDAP records at capture time. A negative label here means a stable-domain control for this small evaluation, not proof the domain has never been involved in an incident.",
-    "An Illustria report describing an expired-domain account-recovery path was reviewed, but it does not publicly identify the domain or package and does not document a confirmed malicious release; it is not an evaluable positive. Its page returned HTTP 403 to the direct fetch in this run. https://blog.illustria.io/illustria-discovers-account-takeover-vulnerability-in-a-popular-package-affecting-1000-8aaaf61ebfc4"
+    "Incident candidates include only cases with a public source describing the expired or re-registered-domain path, or a reported candidate where the mechanism remains explicitly uncertain.",
+    "The ctx incident is confirmed, but its current RDAP registration event is from 2023 and does not reconstruct the 2022 attack-time state.",
+    "The node-ipc package compromise is documented, but the domain-takeover path remains a hypothesis; the March 10 report conflicts with current RDAP event date May 7.",
+    "The 2023 npm demonstration is researcher-authorized and leaves both the package and domain undisclosed, so it cannot be scored by domain.",
+    "The related phpass lead was not counted separately: reviewed SANS and CrowdStrike sources did not verify an expired-email-domain takeover for that project.",
+    "Controls are tied to package author or maintainer domain fields in public PyPI or npm registry JSON; only domain names are retained.",
+    "node-ipc/atlantis-software.net is kept as a scorable positive only for the RDAP-derived signals; the label rests on public reports whose takeover mechanism is a hypothesis, and the sources disagree on March 10 vs May 7."
+  ],
+  "reviewed_not_counted": [
+    {
+      "package": "phpass",
+      "reason": "The reviewed sources do not establish a separate expired-email-domain takeover for this project.",
+      "source_urls": [
+        "https://www.crowdstrike.com/en-us/blog/how-crowdstrike-detects-poisoned-python-packages-ctx-phpass/",
+        "https://isc.sans.edu/diary/ctx+Python+Library+Updated+with+Extra+Features/28678"
+      ],
+      "fetched_at": "2026-10-11"
+    }
   ],
   "domains": [
     {
@@ -31,12 +38,26 @@
         "registered": true,
         "created": "2026-05-07T11:49:33Z",
         "expires": "2027-05-07T11:49:33Z",
-        "status": ["client transfer prohibited"],
+        "status": [
+          "client transfer prohibited"
+        ],
         "events": [
-          {"eventAction": "registration", "eventDate": "2026-05-07T11:49:33Z"},
-          {"eventAction": "expiration", "eventDate": "2027-05-07T11:49:33Z"},
-          {"eventAction": "last changed", "eventDate": "2026-05-07T11:49:38Z"},
-          {"eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:02:53Z"}
+          {
+            "eventAction": "registration",
+            "eventDate": "2026-05-07T11:49:33Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2027-05-07T11:49:33Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-05-07T11:49:38Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-11T01:02:53Z"
+          }
         ],
         "registrar_events": [],
         "fetched_at": "2026-10-11T01:22:15Z"
@@ -52,7 +73,10 @@
       "dependents": null,
       "dependents_verification": "Unverified; a dependent-package count was not available from the fetched npm registry metadata.",
       "downloads_week": 676227,
-      "downloads_period": {"start": "2026-10-03", "end": "2026-10-09"},
+      "downloads_period": {
+        "start": "2026-10-03",
+        "end": "2026-10-09"
+      },
       "downloads_source_url": "https://api.npmjs.org/downloads/point/last-week/node-ipc",
       "downloads_fetched_at": "2026-10-11T01:21:45Z",
       "unverified": [
@@ -74,12 +98,28 @@
         "registered": true,
         "created": "2010-03-19T22:27:58Z",
         "expires": "2031-03-19T22:27:58Z",
-        "status": ["client delete prohibited", "client transfer prohibited", "client update prohibited"],
+        "status": [
+          "client delete prohibited",
+          "client transfer prohibited",
+          "client update prohibited"
+        ],
         "events": [
-          {"eventAction": "registration", "eventDate": "2010-03-19T22:27:58Z"},
-          {"eventAction": "expiration", "eventDate": "2031-03-19T22:27:58Z"},
-          {"eventAction": "last changed", "eventDate": "2023-02-20T05:17:27Z"},
-          {"eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:02:53Z"}
+          {
+            "eventAction": "registration",
+            "eventDate": "2010-03-19T22:27:58Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2031-03-19T22:27:58Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2023-02-20T05:17:27Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-11T01:02:53Z"
+          }
         ],
         "registrar_events": [],
         "fetched_at": "2026-10-11T01:22:15Z"
@@ -94,7 +134,11 @@
       "downloads_period": null,
       "downloads_source_url": null,
       "downloads_fetched_at": null,
-      "unverified": ["package_association", "dependents", "downloads_week"]
+      "unverified": [
+        "package_association",
+        "dependents",
+        "downloads_week"
+      ]
     },
     {
       "domain": "python.org",
@@ -107,13 +151,30 @@
         "registered": true,
         "created": "1995-03-27T05:00:00.545Z",
         "expires": "2033-03-28T05:00:00Z",
-        "status": ["client transfer prohibited"],
+        "status": [
+          "client transfer prohibited"
+        ],
         "events": [
-          {"eventAction": "transfer", "eventDate": "2013-06-15T23:18:08.545Z"},
-          {"eventAction": "expiration", "eventDate": "2033-03-28T05:00:00Z"},
-          {"eventAction": "registration", "eventDate": "1995-03-27T05:00:00.545Z"},
-          {"eventAction": "last changed", "eventDate": "2026-08-12T05:01:11.536Z"},
-          {"eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:17:42.705Z"}
+          {
+            "eventAction": "transfer",
+            "eventDate": "2013-06-15T23:18:08.545Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2033-03-28T05:00:00Z"
+          },
+          {
+            "eventAction": "registration",
+            "eventDate": "1995-03-27T05:00:00.545Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-08-12T05:01:11.536Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-11T01:17:42.705Z"
+          }
         ],
         "registrar_events": [],
         "fetched_at": "2026-10-11T01:22:16Z"
@@ -128,15 +189,658 @@
       "downloads_period": null,
       "downloads_source_url": null,
       "downloads_fetched_at": null,
-      "unverified": ["package_association", "dependents", "downloads_week"]
+      "unverified": [
+        "package_association",
+        "dependents",
+        "downloads_week"
+      ]
     }
   ],
   "caveats": [
-    "N is only three: one hand-selected incident positive and two stable-domain controls; this is not representative of the ecosystem.",
-    "Negative controls are not independently proven never-compromised domains.",
-    "RDAP values were fetched in October 2026 and applied to the May 13 pre-publish scoring date; no archived May RDAP snapshot was available.",
-    "The node-ipc download count is the live npm downloads API window 2026-10-03 through 2026-10-09, not a historical pre-incident count.",
-    "Dependents are null/unverified, not zero; the scorer treats null as zero for this measured run.",
-    "No historical MX snapshot is included."
-  ]
+    "The controls are selected examples, not a representative sample; not documented as compromised does not mean proven safe.",
+    "Twenty controls are included: 17 have current RDAP registration dates at least eight years old and three are harder, more recently registered controls.",
+    "Current RDAP creation and expiration events are not historical snapshots and do not establish ownership continuity or past expiration events.",
+    "Unverified dependents and maintainer dormancy are null; the scorer treats null as zero, which can understate risk and recall.",
+    "No historical package download or dependent counts are supplied.",
+    "Gemma-assisted evaluation is not measured; no model output was simulated."
+  ],
+  "records": [
+    {
+      "id": "pypi-ctx-2022",
+      "case_type": "incident",
+      "package": "ctx",
+      "registry": "PyPI",
+      "domain": "figlief.com",
+      "label": "positive",
+      "scorable": false,
+      "as_of": null,
+      "incident_dates": {
+        "reported_domain_expiry": "2016-12",
+        "first_unsuccessful_reset_attempt": "2022-05-10",
+        "domain_reregistration": "2022-05-14T18:40:05Z",
+        "successful_password_reset": "2022-05-14T18:52:40Z",
+        "reported_malicious_release_window": "2022-05-14 through 2022-05-24"
+      },
+      "rdap": {
+        "registered": true,
+        "created": "2023-01-01T16:42:01Z",
+        "expires": "2028-01-01T16:42:01Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/figlief.com",
+        "fetched_at": "2026-10-11"
+      },
+      "scorable_reason": "Excluded: the current RDAP creation event is 2023-01-01, not the source-confirmed 2022-05-14 re-registration. No verified attack-time RDAP snapshot is available, so current state cannot reconstruct the scorer input at the incident.",
+      "source_urls": [
+        "https://python-security.readthedocs.io/pypi-vuln/index-2022-05-24-ctx-domain-takeover.html",
+        "https://www.crowdstrike.com/en-us/blog/how-crowdstrike-detects-poisoned-python-packages-ctx-phpass/",
+        "https://isc.sans.edu/diary/ctx+Python+Library+Updated+with+Extra+Features/28678",
+        "https://rdap.verisign.com/com/v1/domain/figlief.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "npm-node-ipc-2026",
+      "case_type": "incident",
+      "package": "node-ipc",
+      "registry": "npm",
+      "domain": "atlantis-software.net",
+      "label": "positive",
+      "scorable": true,
+      "as_of": "2026-05-13T23:59:59Z",
+      "incident_dates": {
+        "reported_reregistration_dates": [
+          "2026-03-10",
+          "2026-05-07"
+        ],
+        "rdap_registration_event": "2026-05-07T11:49:33Z",
+        "malicious_releases_published": "2026-05-14"
+      },
+      "rdap": {
+        "registered": true,
+        "created": "2026-05-07T11:49:33Z",
+        "expires": "2027-05-07T11:49:33Z",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+        "fetched_at": "2026-10-11"
+      },
+      "scorable_reason": "Scorable for the RDAP-derived inputs: the registry's current registration event (2026-05-07T11:49:33Z) precedes the as-of date (2026-05-13, the day before the first malicious publish on 2026-05-14), and a later re-registration would show a later date, so the registration date on the as-of day was 2026-05-07. Not verified: the March 10 date reported by Depi (not visible in RDAP), the prior expiry/deletion, and the email-takeover mechanism itself (reported as a hypothesis by the sources). Weekly downloads are a current npm snapshot, not a historical value; dependents and dormancy are null and scored as zero.",
+      "source_urls": [
+        "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack",
+        "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ",
+        "https://registry.npmjs.org/node-ipc",
+        "https://rdap.verisign.com/net/v1/domain/atlantis-software.net"
+      ],
+      "fetched_at": "2026-10-11",
+      "dependents": null,
+      "downloads_week": 676227,
+      "downloads_period": {
+        "start": "2026-10-03",
+        "end": "2026-10-09"
+      },
+      "downloads_source_url": "https://api.npmjs.org/downloads/point/last-week/node-ipc",
+      "downloads_fetched_at": "2026-10-11T01:21:45Z",
+      "maintainer_dormant": null,
+      "mx_present": null
+    },
+    {
+      "id": "illustria-npm-takeover-demonstration-2023",
+      "case_type": "incident",
+      "package": null,
+      "registry": "npm",
+      "domain": null,
+      "label": "positive",
+      "scorable": false,
+      "as_of": null,
+      "incident_dates": {
+        "reported": "2023-02-17"
+      },
+      "rdap": null,
+      "scorable_reason": "Excluded: the report describes a researcher-authorized takeover demonstration using a recovered expired domain, but does not disclose the package name or domain; no domain-level RDAP observation can be attached. No production package takeover was reported.",
+      "source_urls": [
+        "https://thehackernews.com/2023/02/researchers-hijack-popular-npm-package.html",
+        "https://www.scworld.com/analysis/open-source-package-with-millions-of-downloads-vulnerable-to-account-takeover"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-numpy",
+      "case_type": "control",
+      "package": "numpy",
+      "registry": "PyPI",
+      "domain": "python.org",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "1995-03-27T05:00:00.545Z",
+        "expires": "2033-03-28T05:00:00Z",
+        "source_url": "https://rdap.publicinterestregistry.org/rdap/domain/python.org"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/numpy/json",
+        "https://rdap.publicinterestregistry.org/rdap/domain/python.org"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-pillow",
+      "case_type": "control",
+      "package": "Pillow",
+      "registry": "PyPI",
+      "domain": "aclark.net",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2001-07-23T17:10:12Z",
+        "expires": "2027-07-23T17:10:12Z",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/aclark.net"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/Pillow/json",
+        "https://rdap.verisign.com/net/v1/domain/aclark.net"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-django",
+      "case_type": "control",
+      "package": "Django",
+      "registry": "PyPI",
+      "domain": "djangoproject.com",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2005-04-04T19:49:07Z",
+        "expires": "2028-04-04T19:49:07Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/djangoproject.com"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/Django/json",
+        "https://rdap.verisign.com/com/v1/domain/djangoproject.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-flask",
+      "case_type": "control",
+      "package": "Flask",
+      "registry": "PyPI",
+      "domain": "palletsprojects.com",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2016-04-03T07:30:08Z",
+        "expires": "2031-04-03T07:30:08Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/palletsprojects.com"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/Flask/json",
+        "https://rdap.verisign.com/com/v1/domain/palletsprojects.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-urllib3",
+      "case_type": "control",
+      "package": "urllib3",
+      "registry": "PyPI",
+      "domain": "shazow.net",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2003-09-13T04:43:11Z",
+        "expires": "2027-09-13T04:43:11Z",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/shazow.net"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/urllib3/json",
+        "https://rdap.verisign.com/net/v1/domain/shazow.net"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-attrs",
+      "case_type": "control",
+      "package": "attrs",
+      "registry": "PyPI",
+      "domain": "ox.cx",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2006-02-08T13:00:00Z",
+        "expires": "2027-02-08T13:00:00Z",
+        "source_url": "https://rdap.nic.cx/domain/ox.cx"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/attrs/json",
+        "https://rdap.nic.cx/domain/ox.cx"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-black",
+      "case_type": "control",
+      "package": "black",
+      "registry": "PyPI",
+      "domain": "langa.pl",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2006-02-22T14:55:35Z",
+        "expires": "2028-02-22T14:55:35Z",
+        "source_url": "https://rdap.dns.pl/domain/langa.pl"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/black/json",
+        "https://rdap.dns.pl/domain/langa.pl"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-paramiko",
+      "case_type": "control",
+      "package": "paramiko",
+      "registry": "PyPI",
+      "domain": "bitprophet.org",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2004-07-09T20:28:41Z",
+        "expires": "2029-07-09T20:28:41Z",
+        "source_url": "https://rdap.publicinterestregistry.org/rdap/domain/bitprophet.org"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/paramiko/json",
+        "https://rdap.publicinterestregistry.org/rdap/domain/bitprophet.org"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-sqlalchemy",
+      "case_type": "control",
+      "package": "SQLAlchemy",
+      "registry": "PyPI",
+      "domain": "zzzcomputing.com",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "1999-12-17T00:08:58Z",
+        "expires": "2026-12-17T00:08:58Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/zzzcomputing.com"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/SQLAlchemy/json",
+        "https://rdap.verisign.com/com/v1/domain/zzzcomputing.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-httpx",
+      "case_type": "control",
+      "package": "httpx",
+      "registry": "PyPI",
+      "domain": "tomchristie.com",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2003-07-11T19:14:11Z",
+        "expires": "2027-07-11T19:14:11Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/tomchristie.com"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/httpx/json",
+        "https://rdap.verisign.com/com/v1/domain/tomchristie.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-pyyaml",
+      "case_type": "control",
+      "package": "PyYAML",
+      "registry": "PyPI",
+      "domain": "resolvent.net",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2004-04-14T09:53:50Z",
+        "expires": "2027-04-14T09:53:50Z",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/resolvent.net"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/PyYAML/json",
+        "https://rdap.verisign.com/net/v1/domain/resolvent.net"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-redis",
+      "case_type": "control",
+      "package": "redis",
+      "registry": "PyPI",
+      "domain": "redis.com",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "1996-02-24T05:00:00Z",
+        "expires": "2027-02-25T05:00:00Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/redis.com"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/redis/json",
+        "https://rdap.verisign.com/com/v1/domain/redis.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-python-dateutil",
+      "case_type": "control",
+      "package": "python-dateutil",
+      "registry": "PyPI",
+      "domain": "niemeyer.net",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "1998-09-02T04:00:00Z",
+        "expires": "2027-09-01T04:00:00Z",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/niemeyer.net"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/python-dateutil/json",
+        "https://rdap.verisign.com/net/v1/domain/niemeyer.net"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-pytz",
+      "case_type": "control",
+      "package": "pytz",
+      "registry": "PyPI",
+      "domain": "stuartbishop.net",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2002-04-28T08:48:27Z",
+        "expires": "2034-04-28T08:48:27Z",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/stuartbishop.net"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/pytz/json",
+        "https://rdap.verisign.com/net/v1/domain/stuartbishop.net"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-gunicorn",
+      "case_type": "control",
+      "package": "gunicorn",
+      "registry": "PyPI",
+      "domain": "gunicorn.org",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2010-01-18T23:13:26.749Z",
+        "expires": "2027-01-18T23:13:26.749Z",
+        "source_url": "https://rdap.publicinterestregistry.org/rdap/domain/gunicorn.org"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/gunicorn/json",
+        "https://rdap.publicinterestregistry.org/rdap/domain/gunicorn.org"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-aiohttp",
+      "case_type": "control",
+      "package": "aiohttp",
+      "registry": "PyPI",
+      "domain": "aiohttp.org",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2016-06-01T01:48:18.387Z",
+        "expires": "2036-06-01T01:48:18.387Z",
+        "source_url": "https://rdap.publicinterestregistry.org/rdap/domain/aiohttp.org"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/aiohttp/json",
+        "https://rdap.publicinterestregistry.org/rdap/domain/aiohttp.org"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-certifi",
+      "case_type": "control",
+      "package": "certifi",
+      "registry": "PyPI",
+      "domain": "kennethreitz.com",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2007-10-09T17:55:48Z",
+        "expires": "2027-10-09T17:55:48Z",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/kennethreitz.com"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/certifi/json",
+        "https://rdap.verisign.com/com/v1/domain/kennethreitz.com"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-vite",
+      "case_type": "control",
+      "package": "vite",
+      "registry": "npm",
+      "domain": "voidzero.dev",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "npm package metadata maintainer domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2024-03-15T10:02:38.624Z",
+        "expires": "2027-03-15T10:02:38.624Z",
+        "source_url": "https://pubapi.registry.google/rdap/domain/voidzero.dev"
+      },
+      "source_urls": [
+        "https://registry.npmjs.org/vite",
+        "https://pubapi.registry.google/rdap/domain/voidzero.dev"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-litestar",
+      "case_type": "control",
+      "package": "litestar",
+      "registry": "PyPI",
+      "domain": "litestar.dev",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2023-04-01T10:12:50.148Z",
+        "expires": "2027-04-01T10:12:50.148Z",
+        "source_url": "https://pubapi.registry.google/rdap/domain/litestar.dev"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/litestar/json",
+        "https://pubapi.registry.google/rdap/domain/litestar.dev"
+      ],
+      "fetched_at": "2026-10-11"
+    },
+    {
+      "id": "control-pydantic",
+      "case_type": "control",
+      "package": "pydantic",
+      "registry": "PyPI",
+      "domain": "pydantic.dev",
+      "label": "negative",
+      "scorable": true,
+      "scorable_reason": "Active RDAP record with a dated registration event; no qualifying public compromise report was found in this limited source review. Negative label is not proof of safety.",
+      "domain_evidence": "PyPI package metadata email domain",
+      "as_of": "2026-10-11T01:54:02Z",
+      "dependents": null,
+      "downloads_week": null,
+      "maintainer_dormant": null,
+      "mx_present": null,
+      "rdap": {
+        "registered": true,
+        "created": "2022-04-24T14:12:18.029Z",
+        "expires": "2027-04-24T14:12:18.029Z",
+        "source_url": "https://pubapi.registry.google/rdap/domain/pydantic.dev"
+      },
+      "source_urls": [
+        "https://pypi.org/pypi/pydantic/json",
+        "https://pubapi.registry.google/rdap/domain/pydantic.dev"
+      ],
+      "fetched_at": "2026-10-11"
+    }
+  ],
+  "legacy_domains_note": "The domains field is retained unchanged for offline replay fixture compatibility. Backtest metrics are computed only from the expanded records field.",
+  "backtest_recorded_at": "2026-10-11T01:55:29Z"
 }

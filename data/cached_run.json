@@ -62,6 +62,7 @@
         "676227 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10)."
       ],
       "as_of": "2026-05-13T23:59:59Z",
+      "ecosystem": "npm",
       "incident": "Public reports associate the maintainer account and malicious node-ipc releases published on 2026-05-14 with this domain. Email takeover is a reported hypothesis, not directly observed.",
       "provenance": {
         "source": "historical-reconstruction",

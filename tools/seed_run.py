@@ -37,6 +37,7 @@ def _cached_finding(record: dict) -> dict:
     finding.update(score_finding(finding, now=as_of))
     finding["as_of"] = record["as_of"]
     if package == "node-ipc":
+        finding["ecosystem"] = "npm"
         finding["incident"] = (
             "Public reports associate the maintainer account and malicious node-ipc releases "
             "published on 2026-05-14 with this domain. Email takeover is a reported hypothesis, "
