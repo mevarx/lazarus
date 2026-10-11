@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-11T01:31:07Z",
+  "set_size": 3,
+  "positive_count": 1,
+  "negative_count": 2,
+  "score_as_of": "2026-05-13T23:59:59Z",
+  "judge_requested": "offline-only-default",
+  "comparison": {
+    "set_size": 3,
+    "positive_count": 1,
+    "negative_count": 2,
+    "thresholds": {
+      "high_or_above": "severity >= HIGH",
+      "critical_only": "severity >= CRITICAL"
+    },
+    "rules_only": {
+      "measured": true,
+      "high_or_above": {
+        "n": 3,
+        "positives": 1,
+        "negatives": 2,
+        "confusion_matrix": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "tn": 2
+        },
+        "precision": 1.0,
+        "precision_defined": true,
+        "recall": 1.0,
+        "recall_defined": true
+      },
+      "critical_only": {
+        "n": 3,
+        "positives": 1,
+        "negatives": 2,
+        "confusion_matrix": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "tn": 2
+        },
+        "precision": 0.0,
+        "precision_defined": false,
+        "recall": 0.0,
+        "recall_defined": true
+      }
+    },
+    "gemma_assisted": {
+      "measured": false,
+      "reason": "GEMINI_API_KEY is not set; defaulted to offline-only. Local Ollama was not probed.",
+      "model_ids": [],
+      "model_families": [],
+      "backends": [],
+      "high_or_above": null,
+      "critical_only": null
+    }
+  },
+  "rows": [
+    {
+      "domain": "atlantis-software.net",
+      "label": "positive",
+      "as_of": "2026-05-13T23:59:59Z",
+      "rule_score": 60,
+      "rule_severity": "HIGH",
+      "rule_signals": [
+        "recently re-registered",
+        "676227 weekly downloads"
+      ],
+      "rules_only_high_or_above": true,
+      "rules_only_critical_only": false,
+      "gemma_assessment": {
+        "measured": false,
+        "reason": "GEMINI_API_KEY is not set; defaulted to offline-only. Local Ollama was not probed.",
+        "severity": null,
+        "risk": null,
+        "model_id": "offline-template",
+        "model_family": "Offline template",
+        "backend": "offline",
+        "provider_label": "Offline template · no model ran",
+        "live": false
+      },
+      "gemma_assisted_high_or_above": null,
+      "gemma_assisted_critical_only": null
+    },
+    {
+      "domain": "npmjs.com",
+      "label": "negative",
+      "as_of": "2026-05-13T23:59:59Z",
+      "rule_score": 0,
+      "rule_severity": "LOW",
+      "rule_signals": [],
+      "rules_only_high_or_above": false,
+      "rules_only_critical_only": false,
+      "gemma_assessment": {
+        "measured": false,
+        "reason": "GEMINI_API_KEY is not set; defaulted to offline-only. Local Ollama was not probed.",
+        "severity": null,
+        "risk": null,
+        "model_id": "offline-template",
+        "model_family": "Offline template",
+        "backend": "offline",
+        "provider_label": "Offline template · no model ran",
+        "live": false
+      },
+      "gemma_assisted_high_or_above": null,
+      "gemma_assisted_critical_only": null
+    },
+    {
+      "domain": "python.org",
+      "label": "negative",
+      "as_of": "2026-05-13T23:59:59Z",
+      "rule_score": 0,
+      "rule_severity": "LOW",
+      "rule_signals": [],
+      "rules_only_high_or_above": false,
+      "rules_only_critical_only": false,
+      "gemma_assessment": {
+        "measured": false,
+        "reason": "GEMINI_API_KEY is not set; defaulted to offline-only. Local Ollama was not probed.",
+        "severity": null,
+        "risk": null,
+        "model_id": "offline-template",
+        "model_family": "Offline template",
+        "backend": "offline",
+        "provider_label": "Offline template · no model ran",
+        "live": false
+      },
+      "gemma_assisted_high_or_above": null,
+      "gemma_assisted_critical_only": null
+    }
+  ],
+  "caveats": [
+    "N is only three: one hand-selected incident positive and two stable-domain controls; this is not representative of the ecosystem.",
+    "Negative controls are not independently proven never-compromised domains.",
+    "RDAP values were fetched in October 2026 and applied to the May 13 pre-publish scoring date; no archived May RDAP snapshot was available.",
+    "The node-ipc download count is the live npm downloads API window 2026-10-03 through 2026-10-09, not a historical pre-incident count.",
+    "Dependents are null/unverified, not zero; the scorer treats null as zero for this measured run.",
+    "No historical MX snapshot is included.",
+    "Positives are hand-selected documented cases, so selection bias is substantial.",
+    "The rules score is reconstructed as of the day before the first malicious publish, but current download counts and current RDAP snapshots are not historical snapshots.",
+    "Precision and recall describe only this labeled set of three records and are not estimates of ecosystem-wide performance."
+  ]
+}

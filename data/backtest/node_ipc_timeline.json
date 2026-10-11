@@ -1,0 +1,86 @@
+{
+  "case": "node-ipc / atlantis-software.net",
+  "sources": {
+    "rdap": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+    "npm_registry": "https://registry.npmjs.org/node-ipc",
+    "depi_report": "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ",
+    "stepsecurity_report": "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack"
+  },
+  "fetched_at": "2026-10-11T01:22:15Z",
+  "disagreement": "A public Depi post says the domain was re-registered on March 10, 2026. The .net registry RDAP record instead exposes a registration event at 2026-05-07T11:49:33Z and a last-changed event five seconds later. The current record does not establish whether March 10 refers to an earlier event or is mistaken; the March date is retained only as a reported, unverified claim. The RDAP record has no registrar-level events.",
+  "registrar_events": {
+    "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+    "registrar": "NameCheap, Inc.",
+    "events": []
+  },
+  "timeline": [
+    {
+      "date": "2026-03-10",
+      "value": "Reported re-registration date; unverified against RDAP.",
+      "source_url": "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ",
+      "how_verified": "Quoted from the fetched public Depi post. The current .net RDAP response has no March 10 event.",
+      "disagreement_note": "Differs from the .net registry RDAP registration event on May 7, 2026. Do not treat March 10 as independently verified."
+    },
+    {
+      "date": "2026-04-29",
+      "value": "Depi says it flagged email-takeover risk on this date.",
+      "source_url": "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ",
+      "how_verified": "Quoted from the fetched public post; this is a report claim, not an RDAP or registry timestamp.",
+      "disagreement_note": null
+    },
+    {
+      "date": "2026-05-07T11:49:33Z",
+      "value": "Domain registration event recorded by .net registry RDAP.",
+      "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+      "how_verified": "Fetched the Verisign .net RDAP JSON; top-level events contains eventAction=registration at this timestamp.",
+      "disagreement_note": "This is the registry event in the current record and conflicts with the March 10 date reported by Depi."
+    },
+    {
+      "date": "2026-05-07T11:49:38Z",
+      "value": "Last-changed event recorded by .net registry RDAP.",
+      "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+      "how_verified": "Fetched the Verisign .net RDAP JSON; top-level events contains eventAction=last changed at this timestamp.",
+      "disagreement_note": null
+    },
+    {
+      "date": "2027-05-07T11:49:33Z",
+      "value": "Expiration event currently recorded by .net registry RDAP.",
+      "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+      "how_verified": "Fetched the Verisign .net RDAP JSON; top-level events contains eventAction=expiration at this timestamp.",
+      "disagreement_note": null
+    },
+    {
+      "date": "2026-05-14T14:25:30.311Z",
+      "value": "node-ipc@12.0.1 publish timestamp; reported malicious by incident sources.",
+      "source_url": "https://registry.npmjs.org/node-ipc",
+      "how_verified": "The npm registry time map gives this exact timestamp for 12.0.1; StepSecurity's fetched incident report identifies 12.0.1 as compromised.",
+      "disagreement_note": null
+    },
+    {
+      "date": "2026-05-14T14:26:01.584Z",
+      "value": "node-ipc@9.2.3 publish timestamp; reported malicious by incident sources.",
+      "source_url": "https://registry.npmjs.org/node-ipc",
+      "how_verified": "The npm registry time map gives this exact timestamp for 9.2.3; StepSecurity's fetched incident report identifies 9.2.3 as compromised.",
+      "disagreement_note": null
+    },
+    {
+      "date": "2026-05-14T14:26:25.106Z",
+      "value": "node-ipc@9.1.6 publish timestamp; reported malicious by incident sources.",
+      "source_url": "https://registry.npmjs.org/node-ipc",
+      "how_verified": "The npm registry time map gives this exact timestamp for 9.1.6; StepSecurity's fetched incident report identifies 9.1.6 as compromised.",
+      "disagreement_note": null
+    },
+    {
+      "date": "2026-05-14",
+      "value": "StepSecurity incident report published; it describes the three malicious releases and the suspected expired-domain route.",
+      "source_url": "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack",
+      "how_verified": "Fetched the report page (HTTP 200) and confirmed its incident content; report statements remain attributed claims.",
+      "disagreement_note": null
+    }
+  ],
+  "unverified": [
+    "The prior expiration or deletion event for atlantis-software.net is not present in the current RDAP response.",
+    "The March 10 report date is not corroborated by the current .net registry RDAP event history.",
+    "Depi describes email takeover as a working hypothesis and says it did not observe the password reset or mailbox access."
+  ]
+}

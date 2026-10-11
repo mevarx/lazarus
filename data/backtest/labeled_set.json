@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-11T01:22:16Z",
+  "score_as_of": "2026-05-13T23:59:59Z",
+  "sources": {
+    "rdap_atlantis": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+    "rdap_npmjs": "https://rdap.verisign.com/com/v1/domain/npmjs.com",
+    "rdap_python": "https://rdap.org/domain/python.org",
+    "npm_node_ipc": "https://registry.npmjs.org/node-ipc",
+    "npm_downloads_node_ipc": "https://api.npmjs.org/downloads/point/last-week/node-ipc",
+    "depi_report": "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ",
+    "stepsecurity_report": "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack"
+  },
+  "selection_notes": [
+    "One positive domain is included: atlantis-software.net, linked by public incident reporting to malicious node-ipc releases. The account-takeover mechanism is a reported hypothesis, not direct observation.",
+    "Two negative controls are long-registered domains with active RDAP records at capture time. A negative label here means a stable-domain control for this small evaluation, not proof the domain has never been involved in an incident.",
+    "An Illustria report describing an expired-domain account-recovery path was reviewed, but it does not publicly identify the domain or package and does not document a confirmed malicious release; it is not an evaluable positive. Its page returned HTTP 403 to the direct fetch in this run. https://blog.illustria.io/illustria-discovers-account-takeover-vulnerability-in-a-popular-package-affecting-1000-8aaaf61ebfc4"
+  ],
+  "domains": [
+    {
+      "domain": "atlantis-software.net",
+      "label": "positive",
+      "label_source": [
+        "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack",
+        "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ"
+      ],
+      "label_reason": "Public reports link this domain to the account used to publish malicious node-ipc releases; the email-takeover chain remains a reported hypothesis.",
+      "as_of": "2026-05-13T23:59:59Z",
+      "rdap": {
+        "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+        "registered": true,
+        "created": "2026-05-07T11:49:33Z",
+        "expires": "2027-05-07T11:49:33Z",
+        "status": ["client transfer prohibited"],
+        "events": [
+          {"eventAction": "registration", "eventDate": "2026-05-07T11:49:33Z"},
+          {"eventAction": "expiration", "eventDate": "2027-05-07T11:49:33Z"},
+          {"eventAction": "last changed", "eventDate": "2026-05-07T11:49:38Z"},
+          {"eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:02:53Z"}
+        ],
+        "registrar_events": [],
+        "fetched_at": "2026-10-11T01:22:15Z"
+      },
+      "package": "node-ipc",
+      "package_source_url": "https://registry.npmjs.org/node-ipc",
+      "package_fetched_at": "2026-10-11T01:21:45Z",
+      "package_publish_times": {
+        "9.1.6": "2026-05-14T14:26:25.106Z",
+        "9.2.3": "2026-05-14T14:26:01.584Z",
+        "12.0.1": "2026-05-14T14:25:30.311Z"
+      },
+      "dependents": null,
+      "dependents_verification": "Unverified; a dependent-package count was not available from the fetched npm registry metadata.",
+      "downloads_week": 676227,
+      "downloads_period": {"start": "2026-10-03", "end": "2026-10-09"},
+      "downloads_source_url": "https://api.npmjs.org/downloads/point/last-week/node-ipc",
+      "downloads_fetched_at": "2026-10-11T01:21:45Z",
+      "unverified": [
+        "dependents",
+        "historical_downloads_week",
+        "historical_mx_present",
+        "prior_domain_expiration_or_deletion_event",
+        "email_takeover_mechanism"
+      ]
+    },
+    {
+      "domain": "npmjs.com",
+      "label": "negative",
+      "label_source": "https://rdap.verisign.com/com/v1/domain/npmjs.com",
+      "label_reason": "Stable-domain control: RDAP reports registration in 2010 and a current expiration in 2031.",
+      "as_of": "2026-05-13T23:59:59Z",
+      "rdap": {
+        "source_url": "https://rdap.verisign.com/com/v1/domain/npmjs.com",
+        "registered": true,
+        "created": "2010-03-19T22:27:58Z",
+        "expires": "2031-03-19T22:27:58Z",
+        "status": ["client delete prohibited", "client transfer prohibited", "client update prohibited"],
+        "events": [
+          {"eventAction": "registration", "eventDate": "2010-03-19T22:27:58Z"},
+          {"eventAction": "expiration", "eventDate": "2031-03-19T22:27:58Z"},
+          {"eventAction": "last changed", "eventDate": "2023-02-20T05:17:27Z"},
+          {"eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:02:53Z"}
+        ],
+        "registrar_events": [],
+        "fetched_at": "2026-10-11T01:22:15Z"
+      },
+      "package": null,
+      "package_source_url": null,
+      "package_fetched_at": null,
+      "package_publish_times": null,
+      "dependents": null,
+      "dependents_verification": "Unverified; this control is not associated with a measured package.",
+      "downloads_week": null,
+      "downloads_period": null,
+      "downloads_source_url": null,
+      "downloads_fetched_at": null,
+      "unverified": ["package_association", "dependents", "downloads_week"]
+    },
+    {
+      "domain": "python.org",
+      "label": "negative",
+      "label_source": "https://rdap.org/domain/python.org",
+      "label_reason": "Stable-domain control: RDAP reports registration in 1995 and a current expiration in 2033.",
+      "as_of": "2026-05-13T23:59:59Z",
+      "rdap": {
+        "source_url": "https://rdap.org/domain/python.org",
+        "registered": true,
+        "created": "1995-03-27T05:00:00.545Z",
+        "expires": "2033-03-28T05:00:00Z",
+        "status": ["client transfer prohibited"],
+        "events": [
+          {"eventAction": "transfer", "eventDate": "2013-06-15T23:18:08.545Z"},
+          {"eventAction": "expiration", "eventDate": "2033-03-28T05:00:00Z"},
+          {"eventAction": "registration", "eventDate": "1995-03-27T05:00:00.545Z"},
+          {"eventAction": "last changed", "eventDate": "2026-08-12T05:01:11.536Z"},
+          {"eventAction": "last update of RDAP database", "eventDate": "2026-10-11T01:17:42.705Z"}
+        ],
+        "registrar_events": [],
+        "fetched_at": "2026-10-11T01:22:16Z"
+      },
+      "package": null,
+      "package_source_url": null,
+      "package_fetched_at": null,
+      "package_publish_times": null,
+      "dependents": null,
+      "dependents_verification": "Unverified; this control is not associated with a measured package.",
+      "downloads_week": null,
+      "downloads_period": null,
+      "downloads_source_url": null,
+      "downloads_fetched_at": null,
+      "unverified": ["package_association", "dependents", "downloads_week"]
+    }
+  ],
+  "caveats": [
+    "N is only three: one hand-selected incident positive and two stable-domain controls; this is not representative of the ecosystem.",
+    "Negative controls are not independently proven never-compromised domains.",
+    "RDAP values were fetched in October 2026 and applied to the May 13 pre-publish scoring date; no archived May RDAP snapshot was available.",
+    "The node-ipc download count is the live npm downloads API window 2026-10-03 through 2026-10-09, not a historical pre-incident count.",
+    "Dependents are null/unverified, not zero; the scorer treats null as zero for this measured run.",
+    "No historical MX snapshot is included."
+  ]
+}
