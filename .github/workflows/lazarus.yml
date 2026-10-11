@@ -1,22 +1,18 @@
-# Example GitHub Action: fail CI when a dependency's maintainer email domain
-# is at CRITICAL takeover risk.
-#
-# This runs `lazarus check` against your lockfile. It exits 1 on any CRITICAL
-# finding, failing the job. It is a heuristic pre-attack signal, not proof of
-# compromise — treat a failure as "investigate", and allow manual override.
-#
-# Setup: commit your package-lock.json (or package.json), drop this file at
-# .github/workflows/lazarus.yml, and push. No secrets required for the public
-# npm + RDAP lookups. If you later add a GEMINI_API_KEY secret, narration
-# upgrades automatically — it is never required for the check to run.
-
+# The check is a heuristic pre-attack signal, not proof of compromise.
 name: lazarus
 on:
   push:
     branches: [main, master]
   pull_request:
   schedule:
-    - cron: '0 6 * * 1'   # weekly Monday 06:00 UTC — domains lapse over time
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      warn_only:
+        description: Warn instead of failing on CRITICAL findings
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,17 +27,41 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Check maintainer email domains for takeover risk
-        # Exits 1 on CRITICAL findings. Set continue-on-error to warn-only.
-        run: |
-          python lazarus.py check package-lock.json \
-            || python lazarus.py check package.json \
-            || echo "::warning::Lazarus found CRITICAL domain-takeover risk signals — review before merging."
+      - name: Run unit tests
+        run: python -m unittest discover -s tests
 
-      # Optional: machine-readable output for downstream jobs / artifacts
-      - name: Emit JSON report
-        if: always()
-        run: python lazarus.py check package-lock.json --json > lazarus-report.json || true
+      - name: Check maintainer email domains for takeover risk
+        env:
+          LAZARUS_WARN_ONLY: ${{ github.event.inputs.warn_only || 'false' }}
+        shell: bash
+        run: |
+          if [[ -f package-lock.json ]]; then
+            manifest=package-lock.json
+          elif [[ -f package.json ]]; then
+            manifest=package.json
+          else
+            echo "::error::No package-lock.json or package.json found."
+            exit 2
+          fi
+
+          set +e
+          python lazarus.py check "$manifest" --json > lazarus-report.json
+          status=$?
+          set -e
+          if [[ "$status" -eq 0 ]]; then
+            echo "No CRITICAL findings."
+          elif [[ "$status" -eq 1 && "$LAZARUS_WARN_ONLY" == "true" ]]; then
+            echo "::warning::Lazarus found CRITICAL risk signals; review before merging."
+          elif [[ "$status" -eq 1 ]]; then
+            echo "::error::Lazarus found CRITICAL risk signals."
+            exit 1
+          elif [[ "$status" -eq 2 ]]; then
+            echo "::error::Lazarus could not read or parse the dependency file."
+            exit 2
+          else
+            echo "::error::Lazarus exited unexpectedly with status $status."
+            exit "$status"
+          fi
 
       - uses: actions/upload-artifact@v4
         if: always()

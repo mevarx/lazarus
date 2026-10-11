@@ -2,10 +2,10 @@
 """check_domain.py — one-shot RDAP risk assessment for a maintainer domain.
 
 Usage:
-    python check_domain.py <domain> [--offline]
+    python check_domain.py <domain>
 
-Prints a JSON risk assessment on stdout and exits 0. Network failures are
-reported inside the JSON rather than raised, so the output is always parseable.
+Prints a JSON risk assessment on stdout. RDAP failures are reported inside the
+JSON; invalid domain arguments exit 2 and RDAP failures exit 1.
 
 Implements the triage policy documented in the parent SKILL.md: the scoring
 table mirrors scorer.py so the numbers agree with the rest of the pipeline.
@@ -15,7 +15,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
+import ipaddress
 
 # The skill lives in <project>/skills/domain-triage/scripts/; rdap.py sits at
 # the project root. Add it to sys.path so this script works no matter the cwd.
@@ -29,6 +31,32 @@ FREE_MAIL = {
     "icloud.com", "hotmail.com", "live.com", "gmx.de", "mail.ru", "qq.com",
     "163.com", "yandex.ru",
 }
+_LABEL = re.compile(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\Z")
+
+
+def _normalize_domain(value: str) -> str:
+    if not isinstance(value, str) or not value or value != value.strip():
+        raise ValueError("not a valid bare domain name")
+    if any(char.isspace() or ord(char) < 32 for char in value):
+        raise ValueError("not a valid bare domain name")
+    try:
+        domain = value[:-1] if value.endswith(".") else value
+        domain = domain.encode("idna").decode("ascii").lower()
+    except UnicodeError as exc:
+        raise ValueError("not a valid bare domain name") from exc
+    try:
+        ipaddress.ip_address(domain)
+    except ValueError:
+        pass
+    else:
+        raise ValueError("not a valid bare domain name")
+    if (not domain or len(domain) > 253 or ":" in domain or "/" in domain
+            or "@" in domain or ".." in domain):
+        raise ValueError("not a valid bare domain name")
+    labels = domain.split(".")
+    if len(labels) < 2 or not all(_LABEL.fullmatch(label) for label in labels):
+        raise ValueError("not a valid bare domain name")
+    return domain
 
 
 def _fallback_resolve(domain: str) -> dict:
@@ -48,7 +76,7 @@ def _fallback_resolve(domain: str) -> dict:
         req = urllib.request.Request(
             "https://rdap.org/domain/" + domain,
             headers={
-                "User-Agent": "lazarus-research/1.0 (contact: maintainers@example.net)",
+                "User-Agent": "lazarus-research/1.0",
                 "Accept": "application/rdap+json",
             },
         )
@@ -67,8 +95,8 @@ def _fallback_resolve(domain: str) -> dict:
             result["registered"] = False
         else:
             result["error"] = f"RDAP HTTP {exc.code}"
-    except Exception as exc:  # noqa: BLE001
-        result["error"] = f"{type(exc).__name__}: {exc}"
+    except Exception:  # noqa: BLE001
+        result["error"] = "RDAP lookup failed"
     return result
 
 
@@ -79,9 +107,9 @@ def _resolve(domain: str) -> dict:
         return _fallback_resolve(domain)
     try:
         return resolve_domain(domain)
-    except Exception as exc:  # noqa: BLE001
+    except Exception:  # noqa: BLE001
         out = _fallback_resolve(domain)
-        out["error"] = f"rdap.resolve_domain failed: {exc}"
+        out["error"] = "RDAP resolver failed"
         return out
 
 
@@ -130,10 +158,11 @@ def severity_label(risk: int) -> str:
 
 def assess(domain: str) -> dict:
     """Score a single domain against the SKILL.md policy table."""
-    domain = (domain or "").strip().lower().strip(".")
-    if not domain or "@" in domain or "." not in domain:
+    try:
+        domain = _normalize_domain(domain)
+    except (ValueError, UnicodeError):
         return {
-            "domain": domain,
+            "domain": None,
             "error": "not a bare domain name",
             "risk": 0,
             "severity": "LOW",
@@ -149,7 +178,8 @@ def assess(domain: str) -> dict:
             "severity": "LOW",
             "signals": ["free-mail provider"],
             "recommendation": (
-                "Free-mail addresses cannot be taken over by domain lapse; no action."
+                "This helper excludes listed free-mail providers from domain-expiry "
+                "scoring; assess the account provider separately."
             ),
         }
 
@@ -228,20 +258,21 @@ def _recommendation(severity: str, signals: list[str]) -> str:
     return _RECOMMENDATIONS.get(severity, _RECOMMENDATIONS["LOW"])
 
 
-def main(argv: list[str]) -> int:
-    args = [a for a in argv[1:] if not a.startswith("--")]
-    if not args:
-        print(
-            "usage: check_domain.py <domain> [--offline]\n"
-            "  prints a JSON risk assessment for one maintainer domain",
-            file=sys.stderr,
-        )
-        return 2
+def main(argv: list[str] | None = None) -> int:
+    import argparse
 
-    result = assess(args[0])
+    parser = argparse.ArgumentParser(
+        prog="check_domain.py",
+        description="Print a JSON RDAP risk assessment for one bare domain.",
+    )
+    parser.add_argument("domain")
+    args = parser.parse_args(argv[1:] if argv is not None else None)
+    result = assess(args.domain)
     print(json.dumps(result, indent=2))
+    if result.get("error") == "not a bare domain name":
+        return 2
     return 0 if not result.get("error") else 1
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv))
+    raise SystemExit(main())
