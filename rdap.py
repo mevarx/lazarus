@@ -444,12 +444,16 @@ def save_cache(cache_path: str, cache: dict[str, dict]) -> None:
 
 
 def resolve_domains(
-    domains: list[str], cache_path: str, concurrency: int = 8
+    domains: list[str], cache_path: str, concurrency: int = 8,
+    force: bool = False,
 ) -> list[dict]:
     """Resolve many domains concurrently, caching every deterministic result.
 
-    Cached domains are never re-fetched. Transient failures (``error`` set) are
-    not persisted, so the next run retries them.
+    Cached domains (memory TTL cache + disk cache) are never re-fetched
+    *unless* ``force`` is True, which re-queries RDAP for every requested
+    domain — used by a "force refresh" scan (``/api/run?refresh=1``) so
+    re-registration / expiry dates actually update. Transient failures
+    (``error`` set) are not persisted, so the next run retries them.
     """
     wanted: list[str] = []
     seen: set[str] = set()
@@ -467,23 +471,24 @@ def resolve_domains(
     wall_now = _wall_clock()
     cache: dict[str, dict] = {}
     cached_results: dict[str, dict] = {}
-    for domain in wanted:
-        key = (path_key, domain)
-        with _cache_lock:
-            memory = _memory_cache.get(key)
-        if memory and now - memory[0] < CACHE_TTL_SECONDS:
-            cached_results[domain] = dict(memory[1])
-            cache[domain] = dict(memory[1], _cached_at=wall_now)
-            continue
-        stored = disk_cache.get(domain)
-        cached_at = stored.get("_cached_at") if isinstance(stored, dict) else None
-        if isinstance(cached_at, (int, float)) and 0 <= wall_now - cached_at < CACHE_TTL_SECONDS:
-            clean = dict(stored)
-            clean.pop("_cached_at", None)
-            cached_results[domain] = clean
-            cache[domain] = dict(clean, _cached_at=cached_at)
+    if not force:
+        for domain in wanted:
+            key = (path_key, domain)
             with _cache_lock:
-                _memory_cache[key] = (now, clean)
+                memory = _memory_cache.get(key)
+            if memory and now - memory[0] < CACHE_TTL_SECONDS:
+                cached_results[domain] = dict(memory[1])
+                cache[domain] = dict(memory[1], _cached_at=wall_now)
+                continue
+            stored = disk_cache.get(domain)
+            cached_at = stored.get("_cached_at") if isinstance(stored, dict) else None
+            if isinstance(cached_at, (int, float)) and 0 <= wall_now - cached_at < CACHE_TTL_SECONDS:
+                clean = dict(stored)
+                clean.pop("_cached_at", None)
+                cached_results[domain] = clean
+                cache[domain] = dict(clean, _cached_at=cached_at)
+                with _cache_lock:
+                    _memory_cache[key] = (now, clean)
     pending = [d for d in wanted if d not in cached_results]
 
     lock = threading.Lock()
