@@ -20,12 +20,17 @@ def _print_findings(findings: list[dict], as_json: bool) -> int:
     critical = [f for f in findings if f.get("severity") == "CRITICAL"]
     if as_json:
         safe = []
-        for finding in findings:
+        for finding_index, finding in enumerate(findings, 1):
             public = dict(finding)
             maintainers = finding.get("maintainers") or []
             count = len(maintainers) if isinstance(maintainers, (list, tuple, set)) else 0
             public["maintainer_count"] = count
-            public["maintainers"] = [f"maintainer-{index + 1}" for index in range(count)]
+            # Unique per finding (not just per position): the graph builder
+            # namespaces by this label, so a shared "maintainer-1" across
+            # findings would collapse them into one node.
+            public["maintainers"] = [
+                f"maintainer-{finding_index}-{index + 1}" for index in range(count)
+            ]
             public.pop("maintainer_names", None)
             public.pop("maintainer_handles", None)
             safe.append(public)

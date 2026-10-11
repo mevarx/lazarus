@@ -155,7 +155,7 @@ def redact_maintainers(findings: list[dict]) -> list[dict]:
     and emails are also scrubbed from narrative/incident prose.
     """
     out = []
-    for f in findings:
+    for idx, f in enumerate(findings, 1):
         if not isinstance(f, dict):
             out.append(f)
             continue
@@ -163,7 +163,11 @@ def redact_maintainers(findings: list[dict]) -> list[dict]:
         maint = g.get("maintainers")
         handles = [str(m) for m in maint] if isinstance(maint, list) else []
         if isinstance(maint, list):
-            g["maintainers"] = [f"maintainer-{i}" for i in range(1, len(maint) + 1)]
+            # Placeholders must be unique PER FINDING, not just per position:
+            # the graph builder namespaces by this label, so a shared
+            # "maintainer-1" across findings would collapse them into one
+            # node and produce a complete-bipartite hairball.
+            g["maintainers"] = [f"maintainer-{idx}-{i}" for i in range(1, len(maint) + 1)]
             g["maintainer_count"] = len(maint)
         for key in ("narrative", "incident", "analysis", "verification"):
             val = g.get(key)

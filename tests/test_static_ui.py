@@ -64,8 +64,10 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("REPLAY · recorded data, not a live scan", html)
         self.assertIn("Risk flags are heuristics, not proof of compromise.", html)
         self.assertIn("radius.combined_weekly_downloads", self.files["app.js"])
-        self.assertIn("node.type || \"\").toLowerCase()", self.files["app.js"])
-        self.assertIn("for (const finding of state.findings)", self.files["app.js"])
+        self.assertIn('node.type || "").toLowerCase()', self.files["app.js"])
+        # graph: bipartite layout built from the REAL /api/graph edges
+        self.assertIn("function renderGraph(graph)", self.files["app.js"])
+        self.assertIn("crossing minimisation", self.files["app.js"])
 
     def test_scan_control_uses_the_supported_event_stream_modes(self):
         script = self.files["app.js"]

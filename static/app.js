@@ -438,6 +438,11 @@ function svgElement(name, attributes = {}) {
   return node;
 }
 
+// Dependency graph - a bipartite layout (domains top, packages bottom) with
+// crossing-minimised ordering, rotated labels, and hover highlighting.
+// Uses the REAL graph from /api/graph (no fictional relationships).
+// Zero dependencies; plain SVG built with svgElement().
+
 function renderGraph(graph) {
   state.graph = graph;
   const region = $("#graph-region");
@@ -449,51 +454,170 @@ function renderGraph(graph) {
     region.setAttribute("aria-label", "No dependency relationships available");
     return;
   }
-  const domains = nodes.filter(node => String(node.type).toLowerCase() === "domain");
-  const packages = nodes.filter(node => String(node.type).toLowerCase() === "package");
-  const positions = new Map();
-  const compact = window.innerWidth <= 680;
-  const width = compact ? 360 : 800;
-  const margin = compact ? 42 : 80;
-  const xPosition = (index, count) => count < 2 ? width / 2 : margin + index * ((width - margin * 2) / (count - 1));
-  domains.forEach((node, index) => positions.set(node.id, { x: xPosition(index, domains.length), y: compact ? 74 : 82 }));
-  packages.forEach((node, index) => positions.set(node.id, { x: xPosition(index, packages.length), y: compact ? 208 : 218 }));
-  const svg = svgElement("svg", { viewBox: `0 0 ${width} 280`, role: "img", "aria-label": "Dependency relationships between domains and packages", class: "dependency-svg" });
-  const edges = Array.isArray(graph.edges) ? graph.edges : [];
-  const visibleEdges = new Set();
-  const addVisibleEdge = (source, target) => {
-    if (positions.has(source) && positions.has(target)) visibleEdges.add(`${source}\u0000${target}`);
-  };
-  for (const edge of edges) addVisibleEdge(edge.source, edge.target);
-  for (const finding of state.findings) {
-    const domain = domains.find(node => node.label === finding.domain || node.id === `domain:${finding.domain}`);
-    if (!domain || !Array.isArray(finding.packages)) continue;
-    for (const packageName of finding.packages) {
-      const packageNode = packages.find(node => node.label === packageName || node.id === `package:${packageName}`);
-      if (packageNode) addVisibleEdge(domain.id, packageNode.id);
+
+  let domains = nodes.filter(node => String(node.type).toLowerCase() === "domain");
+  let packages = nodes.filter(node => String(node.type).toLowerCase() === "package");
+
+  // Build the domain->package adjacency from the REAL edges (resolving the
+  // domain -> maintainer -> package chain the backend emits).
+  const rawEdges = Array.isArray(graph.edges) ? graph.edges : [];
+  const maintToPkg = new Map();   // maintainer id -> [package ids]
+  const domToMaint = new Map();   // domain id -> [maintainer ids]
+  for (const e of rawEdges) {
+    if (e.label === "maintains") {
+      if (!maintToPkg.has(e.source)) maintToPkg.set(e.source, []);
+      maintToPkg.get(e.source).push(e.target);
+    } else if (e.label === "hosts email") {
+      if (!domToMaint.has(e.source)) domToMaint.set(e.source, []);
+      domToMaint.get(e.source).push(e.target);
     }
   }
-  for (const relation of visibleEdges) {
-    const [source, target] = relation.split("\u0000");
-    const from = positions.get(source);
-    const to = positions.get(target);
-    svg.append(svgElement("line", { x1: from.x, y1: from.y, x2: to.x, y2: to.y, class: "graph-edge" }));
+  const pkgIds = new Set(packages.map(p => p.id));
+  const links = new Set();        // "domId\u0000pkgId"
+  for (const d of domains) {
+    const maints = domToMaint.get(d.id) || [];
+    const seen = new Set();
+    for (const m of maints) {
+      for (const p of maintToPkg.get(m) || []) {
+        if (pkgIds.has(p) && !seen.has(p)) {
+          seen.add(p);
+          links.add(`${d.id}\u0000${p}`);
+        }
+      }
+    }
   }
-  for (const node of nodes) {
-    const position = positions.get(node.id);
-    if (!position) continue;
-    const group = svgElement("g", { class: `graph-node graph-${String(node.type).toLowerCase()}` });
-    const circle = svgElement("circle", { cx: position.x, cy: position.y, r: compact ? 9 : 8 });
-    const title = svgElement("title");
-    title.textContent = cleanText(node.label || node.id);
-    const text = svgElement("text", { x: position.x, y: position.y + 27, "text-anchor": "middle" });
-    const label = cleanText(node.label || node.id);
-    const limit = compact ? 8 : 27;
-    text.textContent = label.length > limit ? `${label.slice(0, limit - 1)}…` : label;
-    group.append(circle, title, text);
-    svg.append(group);
+
+  // Cap the view for legibility: keep the highest-risk domains (they arrive
+  // risk-sorted from the backend) and only the packages they touch.
+  const MAX_DOMAINS = 12;
+  const totalDomains = domains.length;
+  if (domains.length > MAX_DOMAINS) {
+    const keep = new Set(domains.slice(0, MAX_DOMAINS).map(d => d.id));
+    domains = domains.filter(d => keep.has(d.id));
+    const touched = new Set();
+    for (const key of links) {
+      const [d, p] = key.split("\u0000");
+      if (keep.has(d)) touched.add(p);
+    }
+    packages = packages.filter(p => touched.has(p.id));
+    for (const key of [...links]) {
+      const [d, p] = key.split("\u0000");
+      if (!keep.has(d) || !touched.has(p)) links.delete(key);
+    }
   }
+
+  // --- crossing minimisation (barycenter sweeps) -----------------------------
+  // Order the bottom row by the average top-row index of its neighbours, then
+  // re-order the top row by the bottom, a few rounds. Deterministic.
+  let domIndex = new Map(domains.map((d, i) => [d.id, i]));
+  const domLinks = new Map(domains.map(d => [d.id, []]));
+  const pkgLinks = new Map(packages.map(p => [p.id, []]));
+  for (const key of links) {
+    const [d, p] = key.split("\u0000");
+    domLinks.get(d)?.push(p);
+    pkgLinks.get(p)?.push(d);
+  }
+  const barySort = (items, indexMap, adjacency) =>
+    items.slice().sort((a, b) => {
+      const avg = id => {
+        const ns = adjacency.get(id) || [];
+        return ns.length ? ns.reduce((s, n) => s + (indexMap.get(n) ?? 0), 0) / ns.length : Infinity;
+      };
+      return avg(a.id) - avg(b.id) || a.label.localeCompare(b.label);
+    });
+  for (let round = 0; round < 3; round++) {
+    packages = barySort(packages, domIndex, pkgLinks);
+    const pkgIndex = new Map(packages.map((p, i) => [p.id, i]));
+    domains = barySort(domains, pkgIndex, domLinks);
+    domIndex = new Map(domains.map((d, i) => [d.id, i]));
+  }
+
+  // --- geometry ----------------------------------------------------------------
+  const compact = window.innerWidth <= 680;
+  const width = compact ? 380 : 860;
+  const margin = compact ? 34 : 52;
+  const topY = 40;
+  const bottomY = compact ? 175 : 190;
+  const xPosition = (index, count) =>
+    count < 2 ? width / 2 : margin + (index * (width - margin * 2)) / (count - 1);
+  const positions = new Map();
+  domains.forEach((node, index) => positions.set(node.id, { x: xPosition(index, domains.length), y: topY }));
+  packages.forEach((node, index) => positions.set(node.id, { x: xPosition(index, packages.length), y: bottomY }));
+
+  const svg = svgElement("svg", {
+    viewBox: `0 0 ${width} ${bottomY + 150}`,
+    role: "img",
+    "aria-label": `Dependency graph: ${domains.length} domains, ${packages.length} packages`,
+    class: "dependency-svg",
+  });
+
+  // curved edges (quadratic bow) so parallel edges separate
+  const curve = (from, to) => {
+    const mx = (from.x + to.x) / 2;
+    const dx = to.x - from.x;
+    return `M ${from.x} ${from.y} Q ${mx - dx * 0.04} ${(from.y + to.y) / 2} ${to.x} ${to.y}`;
+  };
+  for (const key of links) {
+    const [d, p] = key.split("\u0000");
+    const from = positions.get(d);
+    const to = positions.get(p);
+    if (!from || !to) continue;
+    svg.append(svgElement("path", {
+      d: curve(from, to),
+      class: "graph-edge",
+      "data-domain": d,
+      "data-package": p,
+    }));
+  }
+
+  // nodes: rotated labels so adjacent names never collide
+  const labelLimit = compact ? 16 : 32;
+  const placeRow = (row, type) => {
+    for (const node of row) {
+      const position = positions.get(node.id);
+      if (!position) continue;
+      const group = svgElement("g", { class: `graph-node graph-${type}`, "data-id": node.id });
+      group.append(svgElement("circle", { cx: position.x, cy: position.y, r: compact ? 7 : 8 }));
+      const title = svgElement("title");
+      title.textContent = cleanText(node.label || node.id);
+      const text = svgElement("text", {
+        x: position.x + 9,
+        y: position.y + 3,
+        "text-anchor": "start",
+        transform: type === "domain"
+          ? `rotate(-90 ${position.x + 9} ${position.y + 3})`
+          : `rotate(90 ${position.x + 9} ${position.y + 3})`,
+      });
+      const label = cleanText(node.label || node.id);
+      text.textContent = label.length > labelLimit ? `${label.slice(0, labelLimit - 1)}…` : label;
+      group.append(title, text);
+      group.addEventListener("mouseenter", () => highlight(node.id));
+      group.addEventListener("mouseleave", clearHighlight);
+      svg.append(group);
+    }
+  };
+  placeRow(domains, "domain");
+  placeRow(packages, "package");
+
+  // hover: dim everything except the hovered node's own connections
+  function highlight(nodeId) {
+    for (const edge of svg.querySelectorAll(".graph-edge")) {
+      const mine = edge.getAttribute("data-domain") === nodeId || edge.getAttribute("data-package") === nodeId;
+      edge.classList.toggle("graph-edge-active", mine);
+      edge.classList.toggle("graph-edge-dim", !mine);
+    }
+  }
+  function clearHighlight() {
+    for (const edge of svg.querySelectorAll(".graph-edge")) {
+      edge.classList.remove("graph-edge-active", "graph-edge-dim");
+    }
+  }
+
   region.append(svg);
+  if (totalDomains > MAX_DOMAINS) {
+    region.append(element("p", "table-message",
+      `Showing the ${domains.length} highest-risk domains and their packages (${totalDomains} domains total). Hover a node to trace its connections.`));
+  }
   region.setAttribute("aria-label", `Dependency graph with ${domains.length} domains and ${packages.length} packages`);
 }
 

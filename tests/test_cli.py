@@ -44,7 +44,7 @@ class CliExitCodeTests(unittest.TestCase):
                     report = json.loads(rendered)
                     self.assertEqual(report["findings"][0]["maintainer_count"], 2)
                     self.assertEqual(report["findings"][0]["maintainers"],
-                                     ["maintainer-1", "maintainer-2"])
+                                     ["maintainer-1-1", "maintainer-1-2"])
                     self.assertNotIn("private.person@example.net", rendered)
                     self.assertNotIn("private_handle", rendered)
 
@@ -150,7 +150,7 @@ class RepoScanPrivacyTests(unittest.TestCase):
             findings = repo_scan.scan_dependencies(["express"])
         report = json.dumps(findings)
         self.assertEqual(findings[0]["maintainer_count"], 1)
-        self.assertEqual(findings[0]["maintainers"], ["maintainer-1"])
+        self.assertEqual(findings[0]["maintainers"], ["maintainer-1-1"])
         self.assertNotIn("secret.person@mail.example.net", report)
         self.assertNotIn("private-person", report)
         self.assertNotIn("private-handle", report)

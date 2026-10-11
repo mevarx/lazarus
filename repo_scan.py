@@ -151,7 +151,7 @@ def scan_dependencies(package_names: list[str], *, concurrency: int = 8) -> list
     rdap_by_domain = {record["domain"]: record for record in (resolved or [])
                       if isinstance(record, dict) and isinstance(record.get("domain"), str)}
     findings: list[dict] = []
-    for domain in domains:
+    for finding_index, domain in enumerate(domains, 1):
         entry = by_domain[domain]
         record = rdap_by_domain.get(domain)
         if record is None:
@@ -166,7 +166,7 @@ def scan_dependencies(package_names: list[str], *, concurrency: int = 8) -> list
             "ecosystem": "npm",
             "packages": sorted(set(entry["packages"])),
             "maintainer_count": len(entry["maintainers"]),
-            "maintainers": [f"maintainer-{i + 1}"
+            "maintainers": [f"maintainer-{finding_index}-{i + 1}"
                             for i in range(len(entry["maintainers"]))],
             "dependents": entry["dependents"],
             "downloads_week": entry["downloads_week"],

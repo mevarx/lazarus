@@ -66,7 +66,7 @@ class GuardUnitTests(unittest.TestCase):
         f = {"domain": "x.example", "maintainers": ["someone@x.example", "handle1"],
              "narrative": {"narrative": "Contact someone@x.example or handle1 now."}}
         g = app.redact_maintainers([f])[0]
-        self.assertEqual(g["maintainers"], ["maintainer-1", "maintainer-2"])
+        self.assertEqual(g["maintainers"], ["maintainer-1-1", "maintainer-1-2"])
         self.assertEqual(g["maintainer_count"], 2)
         blob = json.dumps(g)
         self.assertNotIn("someone", blob)

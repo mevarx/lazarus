@@ -199,14 +199,18 @@ td { padding: 11px; border-top: 1px solid var(--line); color: var(--muted); font
 
 .graph-card { margin-top: 17px; padding: 18px 20px; }
 .graph-legend { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; }
+.legend-hint { color: var(--quiet); font-style: italic; }
 .legend-domain, .legend-package { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .legend-package { margin-left: 8px; background: var(--high); }
 .graph-region { min-height: 200px; margin-top: 10px; overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-soft); }
 .dependency-svg { display: block; width: 100%; height: auto; min-height: 200px; }
-.graph-edge { stroke: var(--line-strong); stroke-width: 1.2; opacity: .8; }
+.graph-edge { stroke: var(--line-strong); stroke-width: 1.1; opacity: .75; fill: none; transition: opacity 120ms ease; }
+.graph-edge-active { stroke: var(--accent); stroke-width: 1.8; opacity: 1; }
+.graph-edge-dim { opacity: .12; }
 .graph-node circle { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
 .graph-package circle { fill: var(--high); }
 .graph-node text { fill: var(--muted); font-family: inherit; font-size: 10px; }
+.graph-node g:hover circle { stroke: var(--ink); stroke-width: 2.4; }
 .graph-node title { font-size: 12px; }
 .limitations { margin: 19px 0 0; color: var(--quiet); font-size: 10px; }
 .page-footer { display: flex; justify-content: space-between; gap: 15px; padding: 16px clamp(16px, 3vw, 44px); border-top: 1px solid var(--line); color: var(--quiet); font-size: 10px; }
