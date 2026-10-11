@@ -176,6 +176,15 @@ def redact_maintainers(findings: list[dict]) -> list[dict]:
     return out
 
 
+def current_mode() -> str:
+    """'live' only when the findings on screen came from a live scan."""
+    with _STATE_LOCK:
+        if LAST_RUN and LAST_RUN.get("findings"):
+            mode = str((LAST_RUN.get("meta") or {}).get("mode") or "")
+            return "live" if mode == "live" else ("repo-scan" if mode == "repo-scan" else "replay")
+    return "replay"
+
+
 def current_findings() -> tuple[list[dict], str]:
     with _STATE_LOCK:
         if LAST_RUN and LAST_RUN.get("findings"):
@@ -185,7 +194,7 @@ def current_findings() -> tuple[list[dict], str]:
 
 def _record_run(findings: list[dict], meta: dict) -> None:
     global LAST_RUN
-    run = {"findings": findings, "meta": meta}
+    run = {"findings": redact_maintainers(findings), "meta": meta}
     with _STATE_LOCK:
         LAST_RUN = run
     try:
@@ -511,7 +520,7 @@ def status_payload() -> dict:
     findings, source = current_findings()
     return {
         "app": "lazarus",
-        "mode": "replay" if source in ("cached", "seed") else "live",
+        "mode": current_mode(),
         "source": source,
         "findings": len(findings),
         "limits": {
@@ -547,6 +556,7 @@ def findings_payload() -> dict:
         "findings": safe,
         "source": source,
         "seeded": source in ("cached", "seed"),
+        "mode": current_mode(),
         "count": len(findings),
         "stats": compute_stats(safe),
         "blast_radius": blast_radius(safe),
@@ -798,11 +808,11 @@ class Handler(BaseHTTPRequestHandler):
             self._sse_send("finding", {"finding": redact_maintainers([f])[0],
                                        "index": len(findings_out)})
 
-        mode = "demo"
+        mode = "replay"
         try:
             modules = {n: _try_import(n) for n in ("harvester", "rdap", "scorer", "graph", "judge")}
             forced_live = query.get("live", [""])[0] == "1" or os.environ.get("LAZARUS_LIVE") == "1"
-            forced_demo = query.get("demo", [""])[0] == "1"
+            forced_demo = "1" in (query.get("demo", [""])[0], query.get("replay", [""])[0])
             live_ok = bool(
                 forced_live
                 or (
@@ -812,7 +822,7 @@ class Handler(BaseHTTPRequestHandler):
                     and modules.get("scorer")
                 )
             )
-            mode = "live" if live_ok else "demo"
+            mode = "live" if live_ok else "replay"
             self._sse_send("start", {
                 "mode": mode,
                 "timestamp": now_iso(),
@@ -838,7 +848,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._run_demo(progress, emit_finding)
 
             meta = {
-                "mode": mode if ran_live else "demo",
+                "mode": mode if ran_live else "replay",
                 "finished_at": now_iso(),
                 "elapsed_s": round(time.time() - started, 1),
                 "findings_count": len(findings_out),
@@ -863,20 +873,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.close_connection = True
 
     def _run_demo(self, progress, emit_finding) -> None:
-        findings = load_cached_run().get("findings", [])
+        """REPLAY: stream the recorded findings. No network calls are made and
+        nothing here is re-measured; the messages say so."""
+        cached = load_cached_run()
+        findings = cached.get("findings", [])
         total = len(findings)
-        progress("harvest", "replay: maintainer emails harvested — npm search API (500 pkgs) + PyPI top-packages (200)", 0, total)
-        time.sleep(0.4)
-        self._sse_heartbeat()
-        progress("domains", f"replay: {total} unique maintainer domains (free-mail providers excluded)", 0, total)
-        time.sleep(0.4)
-        self._sse_heartbeat()
-        progress("rdap", "replay: registration and expiry resolved via IANA RDAP bootstrap", 0, total)
-        time.sleep(0.5)
-        progress("score", "replay: deterministic risk scoring (INTERFACES.md rules)", 0, total)
+        recorded = cached.get("recorded_at") or cached.get("generated") or "unknown date"
+        progress("replay", f"replaying {total} recorded finding(s) from data/cached_run.json (recorded {recorded}); no network calls", 0, total)
         time.sleep(0.3)
+        self._sse_heartbeat()
         for i, finding in enumerate(findings, 1):
-            time.sleep(0.4)
+            time.sleep(0.25)
             emit_finding(finding)
             progress("emit", f"finding {i}/{total}: {finding.get('domain')}", i, total)
 
