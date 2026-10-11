@@ -227,3 +227,39 @@ body:has(.capitalio-dashboard) [data-slot="sidebar"][data-mobile="true"] {
     transform: scaleX(1);
   }
 }
+
+/* ============================================================================
+   LAZARUS OVERRIDE — appended last so it wins the cascade over the Capitalio
+   template tokens above. Installs the dark threat-intel palette:
+   near-black slate base, amber primary, slate borders, severity ramp.
+   ========================================================================== */
+:root,
+.capitalio-dashboard.dark,
+.dark .capitalio-dashboard {
+  --primary: 38 94% 56%;
+  --primary-foreground: 222 30% 8%;
+  --border: 220 14% 22%;
+  --input: 220 14% 24%;
+  --ring: 38 94% 56%;
+  --muted-foreground: 217 14% 62%;
+  --risk-critical: 354 78% 58%;
+  --risk-high: 24 92% 55%;
+  --risk-medium: 43 94% 55%;
+  --risk-low: 152 55% 46%;
+}
+
+.capitalio-dashboard.dark,
+.dark .capitalio-dashboard {
+  --background: 222 24% 7%;
+  --foreground: 213 25% 90%;
+  --card: 222 20% 10%;
+  --card-foreground: 213 25% 90%;
+  --secondary: 220 16% 16%;
+  --muted: 220 14% 15%;
+  --accent: 220 16% 18%;
+  --sidebar: 222 26% 9%;
+  --sidebar-foreground: 213 22% 88%;
+  --sidebar-accent: 220 16% 16%;
+  --sidebar-accent-foreground: 213 22% 92%;
+  --sidebar-border: 220 14% 18%;
+}

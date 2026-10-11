@@ -19,14 +19,23 @@ import type { Finding, Graph, Narrative } from './lib/types'
 import type { ScanState } from './components/watermelon/capitalio-dashboard/components/capitalio/lazarus-types'
 
 const EMPTY_STATS = {
-  CRITICAL: 0,
-  HIGH: 0,
-  MEDIUM: 0,
-  LOW: 0,
+  critical: 0,
+  high: 0,
+  medium: 0,
+  low: 0,
   total: 0,
   avg_risk: 0,
   total_dependents: 0,
   domains: 0,
+}
+
+const EMPTY_BLAST = {
+  at_risk_domains: 0,
+  at_risk_packages: 0,
+  combined_weekly_downloads: 0,
+  combined_dependents: 0,
+  largest_single_domain: null as string | null,
+  largest_single_downloads: 0,
 }
 
 function Dashboard() {
@@ -35,6 +44,7 @@ function Dashboard() {
   const [findings, setFindings] = useState<Finding[]>([])
   const [graph, setGraph] = useState<Graph>({ nodes: [], edges: [] })
   const [stats, setStats] = useState(EMPTY_STATS)
+  const [blast, setBlast] = useState(EMPTY_BLAST)
   const [seeded, setSeeded] = useState(true)
   const [backend, setBackend] = useState('offline-template')
   const [modelLive, setModelLive] = useState(false)
@@ -63,6 +73,7 @@ function Dashboard() {
       const payload = await fetchFindings()
       setFindings(payload.findings)
       setStats(payload.stats)
+      if (payload.blast_radius) setBlast(payload.blast_radius)
       setSeeded(payload.seeded)
       setBackend(payload.backend)
       setModelLive(payload.live)
@@ -81,6 +92,7 @@ function Dashboard() {
         const cached = await fetchCached()
         setFindings(cached.findings)
         setStats(cached.stats)
+        if (cached.blast_radius) setBlast(cached.blast_radius)
         setSeeded(true)
         setBackend(cached.backend)
         setModelLive(cached.live)
@@ -122,6 +134,7 @@ function Dashboard() {
           })
         } else if (event.type === 'done') {
           setStats(event.data.stats)
+          if (event.data.blast_radius) setBlast(event.data.blast_radius)
           setSeeded(event.data.mode !== 'live')
           const at = new Date().toISOString()
           setLastScanAt(at)
@@ -186,6 +199,7 @@ function Dashboard() {
         <SecurityOverview
           findings={findings}
           stats={stats}
+          blast={blast}
           seeded={seeded}
           selectedDomain={selectedDomain}
           onSelect={(f) => setSelectedDomain(f.domain)}

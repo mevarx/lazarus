@@ -58,10 +58,10 @@ export interface Finding {
 }
 
 export interface Stats {
-  CRITICAL: number
-  HIGH: number
-  MEDIUM: number
-  LOW: number
+  critical: number
+  high: number
+  medium: number
+  low: number
   total: number
   avg_risk: number
   total_dependents: number
@@ -77,6 +77,16 @@ export interface JudgeStatus {
 
 export type FindingsSource = 'last-run' | 'cached' | 'seed' | string
 
+/** Blast radius — combined impact controlled by at-risk (HIGH+) domains. */
+export interface BlastRadius {
+  at_risk_domains: number
+  at_risk_packages: number
+  combined_weekly_downloads: number
+  combined_dependents: number
+  largest_single_domain: string | null
+  largest_single_downloads: number
+}
+
 /** GET /api/findings and GET /api/cached response. */
 export interface FindingsPayload {
   findings: Finding[]
@@ -84,6 +94,7 @@ export interface FindingsPayload {
   seeded: boolean
   count: number
   stats: Stats
+  blast_radius?: BlastRadius
   updated_at?: string
   // judge status fields spread in
   live: boolean
@@ -154,6 +165,7 @@ export interface RunDoneEvent {
   elapsed_s: number
   findings_count: number
   stats: Stats
+  blast_radius?: BlastRadius
 }
 
 export interface RunFailedEvent {

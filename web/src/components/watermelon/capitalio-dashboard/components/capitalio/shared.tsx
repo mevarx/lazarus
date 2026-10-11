@@ -45,9 +45,11 @@ export function toneColor(tone: 'positive' | 'negative' | 'neutral') {
 export function DashboardCard({
   children,
   className,
+  style,
 }: {
   children: React.ReactNode
   className?: string
+  style?: React.CSSProperties
 }) {
   return (
     <article
@@ -55,6 +57,7 @@ export function DashboardCard({
         'shadow-custom min-w-0 rounded-lg border border-border bg-card p-4 text-card-foreground',
         className,
       )}
+      style={style}
     >
       {children}
     </article>

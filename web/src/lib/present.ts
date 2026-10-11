@@ -56,5 +56,5 @@ export function daysUntil(iso: string | null | undefined, now = new Date()): num
 }
 
 export function totalFindings(stats: Stats): number {
-  return stats.CRITICAL + stats.HIGH + stats.MEDIUM + stats.LOW
+  return stats.critical + stats.high + stats.medium + stats.low
 }
