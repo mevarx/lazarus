@@ -1,4 +1,6 @@
 import os
+import platform
+import shutil
 import subprocess
 import tempfile
 import textwrap
@@ -43,6 +45,8 @@ class GitHubActionTests(unittest.TestCase):
         self.assertRegex(self.run_block, r"elif \[\[ \"\$status\" -eq 2")
         self.assertIn('exit "$status"', self.run_block)
         self.assertNotIn("secrets.", self.text)
+        # the run block must be bash (it uses [[ ]]); the shell is declared too
+        self.assertIn("shell: bash", self.text)
 
     def run_shell(self, exit_code, *, warn_only="false", has_lock=True,
                   has_package=True):
@@ -63,22 +67,30 @@ class GitHubActionTests(unittest.TestCase):
             args_file = root / "args.txt"
             env = {
                 **os.environ,
-                # Invoke the fake interpreter by absolute path via PYTHON so the
-                # test is hermetic: on Windows a bare "python" resolves to the
-                # system/venv interpreter (or a Store alias) before the temp
-                # dir on PATH, so PATH-shadowing the name is unreliable.
-                "PYTHON": str(fake_python),
+                # fake 'python' first on PATH so the workflow's default
+                # invocation resolves to it (works on Linux CI / macOS).
+                "PATH": str(bindir) + os.pathsep + os.environ.get("PATH", ""),
                 "LAZARUS_WARN_ONLY": warn_only,
                 "FAKE_EXIT": str(exit_code),
                 "FAKE_ARGS": str(args_file),
             }
+            # The workflow uses bash-only syntax ([[ ]]) and declares
+            # 'shell: bash', so run the block under bash to match CI exactly.
+            bash = shutil.which("bash")
+            self.assertIsNotNone(bash, "bash is required to exercise the workflow block")
             result = subprocess.run(
-                ["sh", "-c", self.run_block], cwd=root, env=env,
+                [bash, "-c", self.run_block], cwd=root, env=env,
                 text=True, capture_output=True, check=False,
             )
             logged = args_file.read_text().strip() if args_file.exists() else ""
             return result, logged
 
+    @unittest.skipIf(
+        platform.system() == "Windows",
+        "Windows App-Execution-Alias layer intercepts 'python' before PATH, "
+        "so a PATH-shadowed fake cannot run under bash here; exercised on "
+        "Linux/macOS CI where the workflow actually executes.",
+    )
     def test_actual_workflow_shell_propagates_critical_and_usage_codes(self):
         critical, args = self.run_shell(1)
         self.assertEqual(critical.returncode, 1, critical.stderr)
@@ -91,6 +103,10 @@ class GitHubActionTests(unittest.TestCase):
         usage, _ = self.run_shell(2)
         self.assertEqual(usage.returncode, 2, usage.stderr)
 
+    @unittest.skipIf(
+        platform.system() == "Windows",
+        "see test_actual_workflow_shell_propagates_critical_and_usage_codes",
+    )
     def test_workflow_selects_package_json_and_errors_if_missing(self):
         fallback, args = self.run_shell(0, has_lock=False, has_package=True)
         self.assertEqual(fallback.returncode, 0, fallback.stderr)
