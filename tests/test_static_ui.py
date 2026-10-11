@@ -54,6 +54,8 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn('family !== "Gemma 4"', script)
         self.assertIn('family !== "Gemma 3"', script)
         self.assertIn("state.recentScanMode", script)
+        self.assertIn("Fell back from ${cleanText(provider.degraded_from)}.", script)
+        self.assertIn('element("summary", "", "Fallback chain")', script)
         self.assertIn("Retry comparison", script)
 
     def test_blast_radius_and_replay_copy_are_explicit(self):

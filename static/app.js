@@ -336,13 +336,14 @@ function providerChip(provider) {
 }
 
 function renderFallbackChain(provider) {
-  if (!provider?.degraded_from && (!Array.isArray(provider?.fallback_chain) || provider.fallback_chain.length === 0)) return null;
+  const chain = Array.isArray(provider?.fallback_chain) ? provider.fallback_chain : [];
+  if (!provider?.degraded_from && chain.length === 0) return null;
+  const group = element("div", "fallback-group");
+  if (provider.degraded_from) group.append(element("p", "fallback-note", `Fell back from ${cleanText(provider.degraded_from)}.`));
   const details = document.createElement("details");
   details.className = "fallback-details";
-  const summary = element("summary", "", "Fallback details");
+  const summary = element("summary", "", "Fallback chain");
   details.append(summary);
-  if (provider.degraded_from) details.append(element("p", "fallback-note", `Fell back from ${cleanText(provider.degraded_from)}.`));
-  const chain = Array.isArray(provider.fallback_chain) ? provider.fallback_chain : [];
   if (chain.length) {
     const list = element("ul", "text-list fallback-list");
     for (const attempt of chain) {
@@ -350,8 +351,9 @@ function renderFallbackChain(provider) {
       list.append(element("li", "", attemptLabel || "unverified"));
     }
     details.append(list);
-  }
-  return details;
+  } else details.append(element("p", "muted-copy", "No fallback attempts recorded."));
+  group.append(details);
+  return group;
 }
 
 function renderComparison(data, finding, container) {
