@@ -12,160 +12,58 @@
   },
   "findings": [
     {
-      "domain": "isonoe.net",
       "ecosystem": "npm",
+      "id": "finding-001",
       "needs_manual_check": false,
-      "packages": [
-        "make-error"
-      ],
-      "rdap": {
-        "created": "2007-10-27T16:32:41Z",
-        "error": null,
-        "expires": "2026-10-27T16:32:41Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 80,
       "severity": "CRITICAL",
-      "signals": [
-        "expiring soon",
-        "expires within 30 days",
-        "4162 dependents",
-        "48458093 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expires within N days",
+        "expiring soon"
       ],
+      "tld": "net",
       "verification": {
-        "checks": {
-          "dns": {
-            "MX": {
-              "answer_count": 3,
-              "status": "NOERROR"
-            },
-            "NS": {
-              "answer_count": 2,
-              "status": "NOERROR"
-            },
-            "SOA": {
-              "answer_count": 1,
-              "status": "NOERROR"
-            }
-          },
-          "rdap": {
-            "created": "2007-10-27T16:32:41Z",
-            "error": false,
-            "registered": true
-          },
-          "second_rdap": {
-            "created": "2007-10-27T16:32:41Z",
-            "registered": true
-          }
-        },
         "reasons": [],
         "status": "confirmed"
       },
       "verified_severity": "CRITICAL"
     },
     {
-      "domain": "blakeembrey.com",
       "ecosystem": "npm",
+      "id": "finding-002",
       "needs_manual_check": false,
-      "packages": [
-        "etag",
-        "fresh",
-        "methods",
-        "parseurl",
-        "pluralize",
-        "unpipe",
-        "vary"
-      ],
-      "rdap": {
-        "created": "2010-01-04T19:58:22Z",
-        "error": null,
-        "expires": "2027-01-04T19:58:22Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 65,
       "severity": "HIGH",
-      "signals": [
-        "expiring soon",
-        "16071 dependents",
-        "688831125 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": {
-            "MX": {
-              "answer_count": 2,
-              "status": "NOERROR"
-            },
-            "NS": {
-              "answer_count": 2,
-              "status": "NOERROR"
-            },
-            "SOA": {
-              "answer_count": 1,
-              "status": "NOERROR"
-            }
-          },
-          "rdap": {
-            "created": "2010-01-04T19:58:22Z",
-            "error": false,
-            "registered": true
-          },
-          "second_rdap": {
-            "created": "2010-01-04T19:58:22Z",
-            "registered": true
-          }
-        },
         "reasons": [],
         "status": "confirmed"
       },
       "verified_severity": "HIGH"
     },
     {
-      "domain": "karpov.io",
       "ecosystem": "npm",
+      "id": "finding-003",
       "needs_manual_check": true,
-      "packages": [
-        "mongoose"
-      ],
-      "rdap": {
-        "created": "2014-01-01T17:21:17Z",
-        "error": null,
-        "expires": "2027-01-01T17:21:17Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 65,
       "severity": "HIGH",
-      "signals": [
-        "expiring soon",
-        "20706 dependents",
-        "6786672 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
       ],
+      "tld": "io",
       "verification": {
-        "checks": {
-          "dns": {
-            "MX": {
-              "answer_count": 5,
-              "status": "NOERROR"
-            },
-            "NS": {
-              "answer_count": 2,
-              "status": "NOERROR"
-            },
-            "SOA": {
-              "answer_count": 1,
-              "status": "NOERROR"
-            }
-          },
-          "rdap": {
-            "created": "2014-01-01T17:21:17Z",
-            "error": false,
-            "registered": true
-          },
-          "second_rdap": {
-            "created": "2014-01-01T17:21:17Z",
-            "registered": true
-          }
-        },
         "reasons": [
           "tld_bootstrap_missing"
         ],
@@ -174,1699 +72,957 @@
       "verified_severity": "UNVERIFIED"
     },
     {
-      "domain": "maxogden.com",
       "ecosystem": "npm",
+      "id": "finding-004",
       "needs_manual_check": false,
-      "packages": [
-        "concat-stream"
-      ],
-      "rdap": {
-        "created": "2008-11-14T13:24:39Z",
-        "error": null,
-        "expires": "2026-11-14T13:24:39Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 65,
       "severity": "HIGH",
-      "signals": [
-        "expiring soon",
-        "2837 dependents",
-        "37833249 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": {
-            "MX": {
-              "answer_count": 6,
-              "status": "NOERROR"
-            },
-            "NS": {
-              "answer_count": 4,
-              "status": "NOERROR"
-            },
-            "SOA": {
-              "answer_count": 1,
-              "status": "NOERROR"
-            }
-          },
-          "rdap": {
-            "created": "2008-11-14T13:24:39Z",
-            "error": false,
-            "registered": true
-          },
-          "second_rdap": {
-            "created": "2008-11-14T13:24:39+00:00",
-            "registered": true
-          }
-        },
         "reasons": [],
         "status": "confirmed"
       },
       "verified_severity": "HIGH"
     },
     {
-      "domain": "somethingdoug.com",
       "ecosystem": "npm",
+      "id": "finding-005",
       "needs_manual_check": false,
-      "packages": [
-        "depd",
-        "ee-first",
-        "escape-html",
-        "etag",
-        "fresh",
-        "methods",
-        "parseurl",
-        "unpipe",
-        "vary"
-      ],
-      "rdap": {
-        "created": "2005-12-29T01:56:46Z",
-        "error": null,
-        "expires": "2026-12-29T01:56:46Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 65,
       "severity": "HIGH",
-      "signals": [
-        "expiring soon",
-        "16432 dependents",
-        "1052568866 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": {
-            "MX": {
-              "answer_count": 2,
-              "status": "NOERROR"
-            },
-            "NS": {
-              "answer_count": 4,
-              "status": "NOERROR"
-            },
-            "SOA": {
-              "answer_count": 1,
-              "status": "NOERROR"
-            }
-          },
-          "rdap": {
-            "created": "2005-12-29T01:56:46Z",
-            "error": false,
-            "registered": true
-          },
-          "second_rdap": {
-            "created": "2005-12-29T01:56:46.000Z",
-            "registered": true
-          }
-        },
         "reasons": [],
         "status": "confirmed"
       },
       "verified_severity": "HIGH"
     },
     {
-      "domain": "sencha.com",
       "ecosystem": "npm",
+      "id": "finding-006",
       "needs_manual_check": false,
-      "packages": [
-        "@sencha/ext-modern-theme-material"
-      ],
-      "rdap": {
-        "created": "2001-11-07T08:40:27Z",
-        "error": null,
-        "expires": "2026-11-07T08:40:27Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 50,
       "severity": "MEDIUM",
-      "signals": [
-        "expiring soon",
-        "expires within 30 days"
+      "signal_types": [
+        "expires within N days",
+        "expiring soon"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "MEDIUM"
     },
     {
-      "domain": "dcode.io",
       "ecosystem": "npm",
+      "id": "finding-007",
       "needs_manual_check": false,
-      "packages": [
-        "@protobufjs/codegen"
-      ],
-      "rdap": {
-        "created": "2012-12-15T19:59:05Z",
-        "error": null,
-        "expires": "2026-12-15T19:59:05Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 45,
       "severity": "MEDIUM",
-      "signals": [
-        "expiring soon",
-        "74696091 weekly downloads"
-      ],
-      "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
-        "reasons": [],
-        "status": "not_applicable"
-      },
-      "verified_severity": "MEDIUM"
-    },
-    {
-      "domain": "benlimmer.com",
-      "ecosystem": "npm",
-      "needs_manual_check": false,
-      "packages": [
-        "@homebound/graphql-typescript-factories"
-      ],
-      "rdap": {
-        "created": "2010-12-11T00:38:55Z",
-        "error": null,
-        "expires": "2026-12-11T00:38:55Z",
-        "registered": true
-      },
-      "risk": 35,
-      "severity": "MEDIUM",
-      "signals": [
+      "signal_types": [
+        "N weekly downloads",
         "expiring soon"
       ],
+      "tld": "io",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "MEDIUM"
     },
     {
-      "domain": "roushan.xyz",
       "ecosystem": "npm",
+      "id": "finding-008",
       "needs_manual_check": false,
-      "packages": [
-        "@rakeshroushan/reposcout"
-      ],
-      "rdap": {
-        "created": "2025-12-23T17:56:40.0Z",
-        "error": null,
-        "expires": "2026-12-23T23:59:59.0Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 35,
       "severity": "MEDIUM",
-      "signals": [
+      "signal_types": [
         "expiring soon"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "MEDIUM"
     },
     {
-      "domain": "timkoop.com",
       "ecosystem": "npm",
+      "id": "finding-009",
       "needs_manual_check": false,
-      "packages": [
-        "popular-english-words"
-      ],
-      "rdap": {
-        "created": "2001-11-20T18:15:09Z",
-        "error": null,
-        "expires": "2026-11-20T18:15:09Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 35,
       "severity": "MEDIUM",
-      "signals": [
+      "signal_types": [
         "expiring soon"
       ],
+      "tld": "xyz",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "MEDIUM"
     },
     {
-      "domain": "alexindigo.com",
       "ecosystem": "npm",
+      "id": "finding-010",
       "needs_manual_check": false,
-      "packages": [
-        "combined-stream"
+      "rdap_error": false,
+      "risk": 35,
+      "severity": "MEDIUM",
+      "signal_types": [
+        "expiring soon"
       ],
-      "rdap": {
-        "created": "2006-01-28T00:40:34Z",
-        "error": null,
-        "expires": "2027-01-28T00:40:34Z",
-        "registered": true
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
       },
+      "verified_severity": "MEDIUM"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-011",
+      "needs_manual_check": false,
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1320 dependents",
-        "100179038 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "debuggable.com",
       "ecosystem": "npm",
+      "id": "finding-012",
       "needs_manual_check": false,
-      "packages": [
-        "combined-stream",
-        "delayed-stream"
-      ],
-      "rdap": {
-        "created": "2007-08-25T12:39:12Z",
-        "error": null,
-        "expires": "2027-08-25T12:39:12Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2401 dependents",
-        "224900457 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "feross.org",
       "ecosystem": "npm",
+      "id": "finding-013",
       "needs_manual_check": false,
-      "packages": [
-        "base64-js",
-        "buffer",
-        "ieee754",
-        "is-buffer",
-        "safe-buffer"
-      ],
-      "rdap": {
-        "created": "2009-01-30T11:00:23.949Z",
-        "error": null,
-        "expires": "2033-01-30T11:00:23.949Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "20832 dependents",
-        "824960842 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "org",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "googlemail.com",
       "ecosystem": "npm",
+      "id": "finding-014",
       "needs_manual_check": false,
-      "packages": [
-        "is-promise"
-      ],
-      "rdap": {
-        "created": "2001-07-18T10:51:05Z",
-        "error": null,
-        "expires": "2027-07-18T10:51:05Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1001 dependents",
-        "93852710 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "hiddentao.com",
       "ecosystem": "npm",
+      "id": "finding-015",
       "needs_manual_check": false,
-      "packages": [
-        "fast-levenshtein"
-      ],
-      "rdap": {
-        "created": "2007-11-22T19:32:07Z",
-        "error": null,
-        "expires": "2028-11-22T19:32:07Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2014 dependents",
-        "148906436 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "iojs.org",
       "ecosystem": "npm",
+      "id": "finding-016",
       "needs_manual_check": false,
-      "packages": [
-        "string_decoder"
-      ],
-      "rdap": {
-        "created": "2014-11-26T20:00:25.28Z",
-        "error": null,
-        "expires": "2032-11-26T20:00:25.28Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2441 dependents",
-        "264069385 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "org",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "jonchurch.com",
       "ecosystem": "npm",
+      "id": "finding-017",
       "needs_manual_check": false,
-      "packages": [
-        "fresh"
-      ],
-      "rdap": {
-        "created": "2008-11-03T22:31:04Z",
-        "error": null,
-        "expires": "2027-11-03T22:31:04Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1670 dependents",
-        "147841048 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "lindesay.co.uk",
       "ecosystem": "npm",
+      "id": "finding-018",
       "needs_manual_check": false,
-      "packages": [
-        "is-promise"
-      ],
-      "rdap": {
-        "created": "2005-05-14T22:42:46Z",
-        "error": null,
-        "expires": "2027-05-14T22:42:46Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1001 dependents",
-        "93852710 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "uk",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "matteocollina.com",
       "ecosystem": "npm",
+      "id": "finding-019",
       "needs_manual_check": false,
-      "packages": [
-        "string_decoder"
-      ],
-      "rdap": {
-        "created": "2009-09-20T20:02:45Z",
-        "error": null,
-        "expires": "2028-09-20T20:02:45Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2441 dependents",
-        "264069385 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "me.com",
       "ecosystem": "npm",
+      "id": "finding-020",
       "needs_manual_check": false,
-      "packages": [
-        "common-tags",
-        "fast-deep-equal"
-      ],
-      "rdap": {
-        "created": "1994-08-23T04:00:00Z",
-        "error": null,
-        "expires": "2027-08-22T04:00:00Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "7090 dependents",
-        "200942499 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "members.fsf.org",
       "ecosystem": "npm",
+      "id": "finding-021",
       "needs_manual_check": false,
-      "packages": [
-        "extend"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "HTTP 400 for https://rdap.publicinterestregistry.org/rdap/domain/members.fsf.org",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "5272 dependents",
-        "105016162 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "org",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "michael.ficarra.me",
       "ecosystem": "npm",
+      "id": "finding-022",
       "needs_manual_check": false,
-      "packages": [
-        "esutils"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "network error for https://rdap.nic.me/domain/michael.ficarra.me: [Errno -2] Name or service not known",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2186 dependents",
-        "164844283 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "me",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "nczconsulting.com",
       "ecosystem": "npm",
+      "id": "finding-023",
       "needs_manual_check": false,
-      "packages": [
-        "doctrine"
-      ],
-      "rdap": {
-        "created": "2011-05-11T02:51:48Z",
-        "error": null,
-        "expires": "2027-05-11T02:51:48Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1840 dependents",
-        "103380945 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "neuf.fr",
       "ecosystem": "npm",
+      "id": "finding-024",
       "needs_manual_check": false,
-      "packages": [
-        "make-error"
-      ],
-      "rdap": {
-        "created": "2003-10-23T22:00:00Z",
-        "error": null,
-        "expires": "2027-07-10T07:02:11Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "4162 dependents",
-        "48458093 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "fr",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "openjsf.org",
       "ecosystem": "npm",
+      "id": "finding-025",
       "needs_manual_check": false,
-      "packages": [
-        "doctrine"
-      ],
-      "rdap": {
-        "created": "2019-02-22T18:33:59.823Z",
-        "error": null,
-        "expires": "2027-02-22T18:33:59.823Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1840 dependents",
-        "103380945 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "org",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "rouvenwessling.de",
       "ecosystem": "npm",
+      "id": "finding-026",
       "needs_manual_check": false,
-      "packages": [
-        "is-number"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "no public RDAP server for TLD 'de' (not in IANA bootstrap or fallback map)",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2816 dependents",
-        "177081712 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "de",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "sellside.com",
       "ecosystem": "npm",
+      "id": "finding-027",
       "needs_manual_check": false,
-      "packages": [
-        "is-extglob",
-        "is-number",
-        "kind-of",
-        "normalize-path"
-      ],
-      "rdap": {
-        "created": "2003-04-19T18:26:42Z",
-        "error": null,
-        "expires": "2027-04-19T18:26:42Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "10031 dependents",
-        "615580682 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "sitnik.es",
       "ecosystem": "npm",
+      "id": "finding-028",
       "needs_manual_check": false,
-      "packages": [
-        "autoprefixer"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "network error for https://rdap.nic.es/domain/sitnik.es: [Errno -2] Name or service not known",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "13063 dependents",
-        "61618565 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "es",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "sophiebits.com",
       "ecosystem": "npm",
+      "id": "finding-029",
       "needs_manual_check": false,
-      "packages": [
-        "object-assign"
-      ],
-      "rdap": {
-        "created": "2016-08-23T02:59:15Z",
-        "error": null,
-        "expires": "2027-08-23T02:59:15Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "9839 dependents",
-        "176297796 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "va.gg",
       "ecosystem": "npm",
+      "id": "finding-030",
       "needs_manual_check": false,
-      "packages": [
-        "string_decoder"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "lookup failed: Expecting value: line 2 column 1 (char 2)",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "2441 dependents",
-        "264069385 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "gg",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "vision-media.ca",
       "ecosystem": "npm",
+      "id": "finding-031",
       "needs_manual_check": false,
-      "packages": [
-        "methods",
-        "mongoose"
-      ],
-      "rdap": {
-        "created": "2006-01-18T00:34:25Z",
-        "error": null,
-        "expires": "2029-01-17T05:00:00Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "22160 dependents",
-        "71193346 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "ca",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "zensh.com",
       "ecosystem": "npm",
+      "id": "finding-032",
       "needs_manual_check": false,
-      "packages": [
-        "merge2"
-      ],
-      "rdap": {
-        "created": "2009-10-18T01:11:29Z",
-        "error": null,
-        "expires": "2027-10-18T01:11:29Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 30,
       "severity": "LOW",
-      "signals": [
-        "1995 dependents",
-        "123985949 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "codingrobots.com",
       "ecosystem": "npm",
+      "id": "finding-033",
       "needs_manual_check": false,
-      "packages": [
-        "fast-sha256"
-      ],
-      "rdap": {
-        "created": "2006-09-21T10:45:49Z",
-        "error": null,
-        "expires": "2030-09-21T10:45:49Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 20,
       "severity": "LOW",
-      "signals": [
-        "217 dependents",
-        "35983834 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "d2l.com",
       "ecosystem": "npm",
+      "id": "finding-034",
       "needs_manual_check": false,
-      "packages": [
-        "ecdsa-sig-formatter"
-      ],
-      "rdap": {
-        "created": "1998-06-25T04:00:00Z",
-        "error": null,
-        "expires": "2031-01-31T11:59:59Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 20,
       "severity": "LOW",
-      "signals": [
-        "141 dependents",
-        "80024195 weekly downloads"
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "google.com",
       "ecosystem": "npm",
+      "id": "finding-035",
       "needs_manual_check": false,
-      "packages": [
-        "@protobufjs/codegen"
-      ],
-      "rdap": {
-        "created": "1997-09-15T04:00:00Z",
-        "error": null,
-        "expires": "2028-09-14T04:00:00Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 10,
       "severity": "LOW",
-      "signals": [
-        "74696091 weekly downloads"
+      "signal_types": [
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "imsky.co",
       "ecosystem": "npm",
+      "id": "finding-036",
       "needs_manual_check": false,
-      "packages": [
-        "holderjs"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "network error for https://rdap.nic.co/domain/imsky.co: [Errno -2] Name or service not known",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 10,
       "severity": "LOW",
-      "signals": [
-        "116359 weekly downloads"
+      "signal_types": [
+        "N weekly downloads"
       ],
+      "tld": "co",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "michaelmcmillan.net",
       "ecosystem": "npm",
+      "id": "finding-037",
       "needs_manual_check": false,
-      "packages": [
-        "citeproc"
-      ],
-      "rdap": {
-        "created": "2009-07-11T17:35:52Z",
-        "error": null,
-        "expires": "2027-07-11T17:35:52Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 10,
       "severity": "LOW",
-      "signals": [
-        "127246 weekly downloads"
+      "signal_types": [
+        "N weekly downloads"
       ],
+      "tld": "net",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "microsoft.com",
       "ecosystem": "npm",
+      "id": "finding-038",
       "needs_manual_check": false,
-      "packages": [
-        "@vscode/web-custom-data"
-      ],
-      "rdap": {
-        "created": "1991-05-02T04:00:00Z",
-        "error": null,
-        "expires": "2027-05-03T04:00:00Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 10,
       "severity": "LOW",
-      "signals": [
-        "469105 weekly downloads"
+      "signal_types": [
+        "N weekly downloads"
       ],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "talmage.io",
       "ecosystem": "npm",
+      "id": "finding-039",
       "needs_manual_check": false,
-      "packages": [
-        "stream-to-observable"
-      ],
-      "rdap": {
-        "created": "2015-03-12T05:14:45Z",
-        "error": null,
-        "expires": "2028-03-12T05:14:45Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 10,
       "severity": "LOW",
-      "signals": [
-        "135520 weekly downloads"
+      "signal_types": [
+        "N weekly downloads"
       ],
+      "tld": "io",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "alejandro.no",
       "ecosystem": "npm",
+      "id": "finding-040",
       "needs_manual_check": false,
-      "packages": [
-        "prettier-plugin-groq"
-      ],
-      "rdap": {
-        "created": "2024-02-21T13:55:05Z",
-        "error": null,
-        "expires": null,
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "no",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "algolia.com",
       "ecosystem": "npm",
+      "id": "finding-041",
       "needs_manual_check": false,
-      "packages": [
-        "recent-searches"
-      ],
-      "rdap": {
-        "created": "2012-04-22T16:54:11Z",
-        "error": null,
-        "expires": "2027-04-22T16:54:11Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "andrewbadami.dev",
       "ecosystem": "npm",
+      "id": "finding-042",
       "needs_manual_check": false,
-      "packages": [
-        "@homebound/graphql-typescript-factories"
-      ],
-      "rdap": {
-        "created": "2024-08-25T02:27:46.944Z",
-        "error": null,
-        "expires": "2027-08-25T02:27:46.944Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "dev",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "datanimbus.com",
       "ecosystem": "npm",
+      "id": "finding-043",
       "needs_manual_check": false,
-      "packages": [
-        "@datanimbus/mongoose"
-      ],
-      "rdap": {
-        "created": "2011-07-01T08:44:14Z",
-        "error": null,
-        "expires": "2027-07-01T08:44:14Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "evernote.com",
       "ecosystem": "npm",
+      "id": "finding-044",
       "needs_manual_check": false,
-      "packages": [
-        "nicknames"
-      ],
-      "rdap": {
-        "created": "2000-01-20T04:38:40Z",
-        "error": null,
-        "expires": "2030-01-20T04:38:40Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "halamicek.cz",
       "ecosystem": "npm",
+      "id": "finding-045",
       "needs_manual_check": false,
-      "packages": [
-        "@keboola/codemirror-lang-sql"
-      ],
-      "rdap": {
-        "created": "2008-01-08T22:52:04+00:00",
-        "error": null,
-        "expires": "2034-01-07T23:00:00+00:00",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "cz",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "haus.se",
       "ecosystem": "npm",
+      "id": "finding-046",
       "needs_manual_check": false,
-      "packages": [
-        "@haus-tech/product-popularity-plugin"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "network error for https://rdap.iis.se/domain/haus.se: [Errno -2] Name or service not known",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "se",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "hesselbom.net",
       "ecosystem": "npm",
+      "id": "finding-047",
       "needs_manual_check": false,
-      "packages": [
-        "@aso-skill/cli"
-      ],
-      "rdap": {
-        "created": "2010-07-24T20:06:37Z",
-        "error": null,
-        "expires": "2029-07-24T20:06:37Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "net",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "hey.com",
       "ecosystem": "npm",
+      "id": "finding-048",
       "needs_manual_check": false,
-      "packages": [
-        "@homebound/graphql-typescript-factories"
-      ],
-      "rdap": {
-        "created": "1995-09-28T04:00:00Z",
-        "error": null,
-        "expires": "2027-09-27T04:00:00Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "homebound.com",
       "ecosystem": "npm",
+      "id": "finding-049",
       "needs_manual_check": false,
-      "packages": [
-        "@homebound/graphql-typescript-factories"
-      ],
-      "rdap": {
-        "created": "2000-08-10T10:45:01Z",
-        "error": null,
-        "expires": "2027-08-10T10:45:01Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "jakubkotek.cz",
       "ecosystem": "npm",
+      "id": "finding-050",
       "needs_manual_check": false,
-      "packages": [
-        "@keboola/codemirror-lang-sql"
-      ],
-      "rdap": {
-        "created": "2015-06-28T15:47:14+00:00",
-        "error": null,
-        "expires": "2027-06-27T22:00:00+00:00",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "cz",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "keboola.com",
       "ecosystem": "npm",
+      "id": "finding-051",
       "needs_manual_check": false,
-      "packages": [
-        "@keboola/codemirror-lang-sql"
-      ],
-      "rdap": {
-        "created": "2008-06-02T14:43:27Z",
-        "error": null,
-        "expires": "2035-06-02T14:43:27Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "live.de",
       "ecosystem": "npm",
+      "id": "finding-052",
       "needs_manual_check": false,
-      "packages": [
-        "r6operators"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "no public RDAP server for TLD 'de' (not in IANA bootstrap or fallback map)",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "de",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "manic.agency",
       "ecosystem": "npm",
+      "id": "finding-053",
       "needs_manual_check": false,
-      "packages": [
-        "@framers/agentos-ext-news-search"
-      ],
-      "rdap": {
-        "created": "2021-10-24T04:01:48.622Z",
-        "error": null,
-        "expires": "2027-10-24T04:01:48.622Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "agency",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "mojibake.ai",
       "ecosystem": "npm",
+      "id": "finding-054",
       "needs_manual_check": false,
-      "packages": [
-        "@pipeworx/mcp-radio"
-      ],
-      "rdap": {
-        "created": "2025-11-11T20:47:48.884Z",
-        "error": null,
-        "expires": "2027-11-11T20:47:48.884Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "ai",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "rettcrocker.com",
       "ecosystem": "npm",
+      "id": "finding-055",
       "needs_manual_check": false,
-      "packages": [
-        "name-recognition"
-      ],
-      "rdap": {
-        "created": "2008-06-24T18:08:57Z",
-        "error": null,
-        "expires": "2027-06-24T18:08:57Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "socialsignin.co.uk",
       "ecosystem": "npm",
+      "id": "finding-056",
       "needs_manual_check": false,
-      "packages": [
-        "angular-bootstrap-calendar"
-      ],
-      "rdap": {
-        "created": "2012-05-01T13:04:55Z",
-        "error": null,
-        "expires": "2027-05-01T13:04:55Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "uk",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "stevecochrane.com",
       "ecosystem": "npm",
+      "id": "finding-057",
       "needs_manual_check": false,
-      "packages": [
-        "tailwindcss-logical"
-      ],
-      "rdap": {
-        "created": "2005-04-06T19:38:46Z",
-        "error": null,
-        "expires": "2027-04-06T19:38:46Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "web.de",
       "ecosystem": "npm",
+      "id": "finding-058",
       "needs_manual_check": false,
-      "packages": [
-        "@zxcvbn-ts/language-pl"
-      ],
-      "rdap": {
-        "created": null,
-        "error": "no public RDAP server for TLD 'de' (not in IANA bootstrap or fallback map)",
-        "expires": null,
-        "registered": false
-      },
+      "rdap_error": true,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "de",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "weser.io",
       "ecosystem": "npm",
+      "id": "finding-059",
       "needs_manual_check": false,
-      "packages": [
-        "small-date"
-      ],
-      "rdap": {
-        "created": "2018-09-16T13:49:29.209Z",
-        "error": null,
-        "expires": "2027-09-16T13:49:29.209Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "io",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
       "verified_severity": "LOW"
     },
     {
-      "domain": "yahoo-inc.com",
       "ecosystem": "npm",
+      "id": "finding-060",
       "needs_manual_check": false,
-      "packages": [
-        "yfetch"
-      ],
-      "rdap": {
-        "created": "1997-08-12T04:00:00Z",
-        "error": null,
-        "expires": "2027-08-11T04:00:00Z",
-        "registered": true
-      },
+      "rdap_error": false,
       "risk": 0,
       "severity": "LOW",
-      "signals": [],
+      "signal_types": [],
+      "tld": "com",
       "verification": {
-        "checks": {
-          "dns": "not_checked",
-          "rdap": "not_checked",
-          "second_rdap": "unavailable"
-        },
         "reasons": [],
         "status": "not_applicable"
       },
@@ -1874,7 +1030,10 @@
     }
   ],
   "generated_at": "2026-10-11T01:26:35.283825+00:00",
-  "notes": [],
+  "notes": [
+    "Domain and package names are withheld from this committed file; see the gitignored data/harvest.local.json for the full local record."
+  ],
+  "redacted": true,
   "tool_config": {
     "dns_server": "https://dns.google/resolve",
     "package_limit": 100,

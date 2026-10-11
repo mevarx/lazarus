@@ -72,7 +72,35 @@ class HarvestOutputCase(unittest.TestCase):
         self.assertEqual(payload["verification"]["confirmed"], 0)
         self.assertEqual(payload["verification"]["uncertain"], 0)
         self.assertEqual(payload["verification"]["not_applicable"], 0)
-        self.assertEqual(payload["notes"], ["unverified empty run"])
+        self.assertEqual(payload["notes"][0], "unverified empty run")
+
+    def test_public_payload_withholds_domains_and_packages(self):
+        rows = [{
+            "domain": "personal-site.example", "ecosystem": "npm", "packages": ["widely-used"],
+            "risk": 65, "severity": "HIGH", "signals": ["16071 dependents", "expiring soon"],
+            "rdap": {"error": None}, "verified_severity": "HIGH", "needs_manual_check": False,
+            "verification": {"status": "confirmed", "reasons": []},
+        }]
+        args = SimpleNamespace(npm=1, budget=30)
+        public = json.dumps(harvest_all._payload(1, rows, args, []))
+        private = json.dumps(harvest_all._payload(1, rows, args, [], private=True))
+        for secret in ("personal-site", "widely-used", "16071"):
+            self.assertNotIn(secret, public)
+        self.assertIn("personal-site.example", private)
+        self.assertIn('"tld": "example"', public)
+
+    def test_committed_harvest_is_redacted_and_consistent(self):
+        path = Path(__file__).resolve().parents[1] / "data" / "harvest.json"
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertTrue(payload["redacted"])
+        for finding in payload["findings"]:
+            self.assertNotIn("domain", finding)
+            self.assertNotIn("packages", finding)
+        counts = payload["counts"]["severity"]
+        self.assertEqual(sum(counts.values()), len(payload["findings"]))
+        ver = payload["verification"]
+        flagged = [f for f in payload["findings"] if f["severity"] in ("CRITICAL", "HIGH")]
+        self.assertEqual(ver["confirmed"] + ver["uncertain"], len(flagged))
 
 
 if __name__ == "__main__":

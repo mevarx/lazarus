@@ -5,6 +5,7 @@ __pycache__/
 # runtime state and caches
 data/last_run.json
 data/rdap_cache.json
+data/harvest.local.json
 
 # secrets: never commit keys or env files
 .env

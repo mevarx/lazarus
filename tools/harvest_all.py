@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from collections import Counter
@@ -60,7 +61,35 @@ def build_findings(npm_items: list[dict]) -> list[dict]:
     return findings
 
 
-def _payload(npm_count: int, findings: list[dict], args, notes: list[str]) -> dict:
+def _signal_types(signals: list[str]) -> list[str]:
+    """Drop the digits so a public record cannot identify a package."""
+    return sorted({re.sub(r"\d+", "N", str(s)) for s in signals})
+
+
+def _public_finding(index: int, row: dict) -> dict:
+    """Redacted per-finding record: no domain, package or maintainer names.
+
+    At-risk findings are not published before their owners can be notified;
+    the full record stays in the gitignored data/harvest.local.json."""
+    domain = str(row.get("domain", ""))
+    verification = row.get("verification") or {"status": "not_applicable", "reasons": []}
+    return {
+        "id": f"finding-{index:03d}",
+        "ecosystem": row.get("ecosystem"),
+        "tld": domain.rsplit(".", 1)[-1] if "." in domain else None,
+        "risk": row.get("risk"),
+        "severity": row.get("severity"),
+        "verified_severity": row.get("verified_severity", "UNVERIFIED"),
+        "needs_manual_check": row.get("needs_manual_check", True),
+        "signal_types": _signal_types(row.get("signals", [])),
+        "rdap_error": bool((row.get("rdap") or {}).get("error")),
+        "verification": {"status": verification.get("status"),
+                         "reasons": verification.get("reasons", [])},
+    }
+
+
+def _payload(npm_count: int, findings: list[dict], args, notes: list[str],
+             *, private: bool = False) -> dict:
     severity_counts = Counter(row.get("severity", "LOW") for row in findings)
     status_counts = Counter(
         row.get("verification", {}).get("status", "not_applicable") for row in findings
@@ -70,7 +99,10 @@ def _payload(npm_count: int, findings: list[dict], args, notes: list[str]) -> di
         for reason in row.get("verification", {}).get("reasons", [])
     )
     saved_findings = []
-    for row in findings:
+    for index, row in enumerate(findings, 1):
+        if not private:
+            saved_findings.append(_public_finding(index, row))
+            continue
         saved_findings.append({
             "domain": row["domain"],
             "ecosystem": row["ecosystem"],
@@ -119,7 +151,10 @@ def _payload(npm_count: int, findings: list[dict], args, notes: list[str]) -> di
             "reasons": dict(sorted(reasons.items())),
         },
         "findings": saved_findings,
-        "notes": notes,
+        "redacted": not private,
+        "notes": notes + ([] if private else [
+            "Domain and package names are withheld from this committed file; "
+            "see the gitignored data/harvest.local.json for the full local record."]),
     }
 
 
@@ -172,6 +207,8 @@ def main() -> int:
 
     payload = _payload(len(npm_items), findings, args, notes)
     _write(args.out, payload)
+    _write(str(Path(args.out).with_suffix(".local.json")),
+           _payload(len(npm_items), findings, args, notes, private=True))
     if any(note.startswith("npm harvest returned no packages") for note in notes):
         print("[harvest] no packages returned; wrote an empty result with a note", file=sys.stderr)
         return 1
