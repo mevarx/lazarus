@@ -201,16 +201,17 @@ def compute_stats(findings: list[dict]) -> dict:
     }
 
 
-def blast_radius(findings: list[dict], *, min_severity: str = "HIGH") -> dict:
+AT_RISK_SEVERITIES = frozenset({"CRITICAL", "HIGH"})
+
+
+def blast_radius(findings: list[dict]) -> dict:
     """Aggregate the weekly-download reach controlled by at-risk domains.
 
-    Answers: 'one lapsed domain controls packages with X combined weekly
-    downloads.' Only domains at or above ``min_severity`` (CRITICAL/HIGH by
-    default) count as at-risk; downloads are summed across their packages.
-    A domain appears once even if several findings reference it.
+    Answers: 'lapsed domains put packages with X combined weekly downloads
+    within reach of a takeover.' Only CRITICAL and HIGH domains count; MEDIUM
+    and LOW never do, and the threshold is deliberately not a parameter so
+    the UI, docs and API cannot drift apart. A domain is counted once.
     """
-    order = {"CRITICAL": 3, "HIGH": 2, "MEDIUM": 1, "LOW": 0}
-    threshold = order.get(min_severity.upper(), 2)
     at_risk_downloads = 0
     at_risk_dependents = 0
     at_risk_domains: set[str] = set()
@@ -219,10 +220,10 @@ def blast_radius(findings: list[dict], *, min_severity: str = "HIGH") -> dict:
     worst_downloads = 0
     for f in findings:
         sev = str(f.get("severity") or "LOW").upper()
-        if order.get(sev, 0) < threshold:
+        if sev not in AT_RISK_SEVERITIES:
             continue
         dom = f.get("domain")
-        if not dom:
+        if not dom or dom in at_risk_domains:
             continue
         at_risk_domains.add(dom)
         try:
@@ -480,8 +481,10 @@ def cached_payload() -> dict:
     safe = redact_maintainers(findings)
     cached["findings"] = safe
     cached.update(judge_status())
-    cached.setdefault("stats", compute_stats(safe))
-    cached.setdefault("blast_radius", blast_radius(safe))
+    # Always derived from the findings so recorded files cannot carry a stale
+    # or differently-defined blast radius.
+    cached["stats"] = compute_stats(safe)
+    cached["blast_radius"] = blast_radius(safe)
     cached.setdefault("graph", build_graph(safe))
     return cached
 
