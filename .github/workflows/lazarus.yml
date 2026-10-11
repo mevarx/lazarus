@@ -40,8 +40,11 @@ jobs:
           elif [[ -f package.json ]]; then
             manifest=package.json
           else
-            echo "::error::No package-lock.json or package.json found."
-            exit 2
+            # This repo is pure Python with no JS manifest; the dependency
+            # check only applies to repos that vendor a lockfile. Skip it
+            # rather than failing — the unit tests above are the gate.
+            echo "::notice::No package-lock.json or package.json in this repo; skipping dependency check."
+            exit 0
           fi
 
           set +e

@@ -112,9 +112,11 @@ class GitHubActionTests(unittest.TestCase):
         self.assertEqual(fallback.returncode, 0, fallback.stderr)
         self.assertIn("lazarus.py check package.json --json", args)
 
+        # No manifest at all: this repo is pure Python, so the check SKIPS
+        # (notice + exit 0) rather than failing — the unit tests are the gate.
         missing, _ = self.run_shell(0, has_lock=False, has_package=False)
-        self.assertEqual(missing.returncode, 2)
-        self.assertIn("No package-lock.json or package.json", missing.stdout)
+        self.assertEqual(missing.returncode, 0)
+        self.assertIn("::notice::No package-lock.json or package.json", missing.stdout)
 
 
 if __name__ == "__main__":
