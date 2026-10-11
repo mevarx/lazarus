@@ -39,7 +39,7 @@ class LockfileTests(unittest.TestCase):
 
 class MaskEmailTests(unittest.TestCase):
     def test_masks_mailbox_keeps_domain(self):
-        self.assertEqual(repo_scan.mask_email("atiertant@atlantis-software.net"),
+        self.assertEqual(repo_scan.mask_email("example-handle@atlantis-software.net"),
                          "***@atlantis-software.net")
 
     def test_short_local(self):
@@ -79,7 +79,7 @@ class BlastRadiusTests(unittest.TestCase):
 class AnalyzeParseTests(unittest.TestCase):
     FINDING = {
         "domain": "atlantis-software.net", "packages": ["node-ipc"],
-        "maintainers": ["atiertant"], "maintainer_dormant": True,
+        "maintainers": ["example-handle"], "maintainer_dormant": True,
         "last_publish": "2022-06-01", "mx_present": True,
         "dependents": 424, "downloads_week": 658012,
         "rdap": {"registered": True, "created": "2026-05-07T11:49:33Z",

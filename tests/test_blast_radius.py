@@ -64,6 +64,16 @@ class BlastRadiusRuleTests(unittest.TestCase):
         self.assertEqual(br["at_risk_domains"], 1)
 
 
+class BlastRadiusUnverifiedTests(unittest.TestCase):
+    def test_null_values_are_reported_as_unverified_not_zero(self):
+        f = _f("a.example", "HIGH", 100, None)
+        f["dependents"] = None
+        br = app.blast_radius([f, _f("m.example", "MEDIUM", 1, None)])
+        self.assertEqual(br["domains_with_unverified_dependents"], 1)
+        self.assertEqual(br["domains_with_unverified_downloads"], 0)
+        self.assertEqual(br["combined_dependents"], 0)
+
+
 class BlastRadiusPayloadTests(unittest.TestCase):
     def test_cached_payload_matches_critical_high_subset(self):
         payload = app.cached_payload()

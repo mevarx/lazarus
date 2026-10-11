@@ -1,5 +1,5 @@
 # Lazarus — Module Interface Contract
-All modules are pure stdlib Python 3.11 (`python`, NOT `python3` — 3.13 has zero packages).
+All modules are pure stdlib Python (3.10+; CI uses 3.11).
 Every function must be importable standalone and unit-testable without network.
 
 ---

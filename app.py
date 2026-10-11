@@ -247,6 +247,8 @@ def blast_radius(findings: list[dict]) -> dict:
     at_risk_dependents = 0
     at_risk_domains: set[str] = set()
     at_risk_packages: set[str] = set()
+    unverified_dependents = 0
+    unverified_downloads = 0
     worst_domain = None
     worst_downloads = 0
     for f in findings:
@@ -257,6 +259,9 @@ def blast_radius(findings: list[dict]) -> dict:
         if not dom or dom in at_risk_domains:
             continue
         at_risk_domains.add(dom)
+        # None means "not verified", which is different from a measured zero.
+        unverified_dependents += f.get("dependents") is None
+        unverified_downloads += f.get("downloads_week") is None
         try:
             dl = int(f.get("downloads_week") or 0)
         except (TypeError, ValueError):
@@ -277,6 +282,8 @@ def blast_radius(findings: list[dict]) -> dict:
         "at_risk_packages": len(at_risk_packages),
         "combined_weekly_downloads": at_risk_downloads,
         "combined_dependents": at_risk_dependents,
+        "domains_with_unverified_dependents": unverified_dependents,
+        "domains_with_unverified_downloads": unverified_downloads,
         "largest_single_domain": worst_domain,
         "largest_single_downloads": worst_downloads,
     }

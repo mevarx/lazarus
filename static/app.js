@@ -108,7 +108,8 @@ function updateOverview(payload) {
   $("#blast-domains").textContent = numberText(radius.at_risk_domains);
   $("#blast-packages").textContent = numberText(radius.at_risk_packages);
   $("#blast-downloads").textContent = numberText(radius.combined_weekly_downloads);
-  $("#blast-dependents").textContent = numberText(radius.combined_dependents);
+  const unverifiedDeps = Number(radius.domains_with_unverified_dependents) || 0;
+  $("#blast-dependents").textContent = numberText(radius.combined_dependents) + (unverifiedDeps ? ` (unverified for ${unverifiedDeps})` : "");
   const largest = radius.largest_single_domain;
   $("#blast-largest").textContent = `Largest single domain: ${largest ? cleanText(largest) : "—"} · ${numberText(radius.largest_single_downloads)} weekly downloads`;
   $("#finding-count").textContent = numberText(payload?.count ?? state.findings.length);

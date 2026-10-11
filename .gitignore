@@ -17,8 +17,3 @@ data/harvest.local.json
 # local agent/runtime scratch
 .hoplite/runtime/
 
-# web dashboard (removed; kept so stale local checkouts stay clean)
-web/node_modules/
-web/dist/
-web/*.tsbuildinfo
-web/.vite/
