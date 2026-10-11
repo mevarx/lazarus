@@ -1,216 +1,125 @@
-#!/usr/bin/env python
-"""Regenerate the seeded demo run with the REAL atlantis-software.net case.
+#!/usr/bin/env python3
+"""Rebuild the offline replay fixture from the checked-in, source-backed evaluation snapshot.
 
-The seeded finding must match the verified node-ipc incident:
-  - maintainer account: atiertant (not the invented b.miller@)
-  - RDAP: created 2026-05-07, expires 2027-05-07 (verified live)
-  - malicious versions 9.1.6 / 9.2.3 / 12.0.1 published 2026-05-14
-  - real downloads: node-ipc ~658k/week (verified live)
-
-Scored with the real scorer at the attack date so the numbers are consistent.
+This script performs no network requests and never initializes the model judge.
+To refresh facts, verify them independently and update data/backtest/labeled_set.json.
 """
+
+from __future__ import annotations
+
+import argparse
+import datetime as dt
 import json
-import sys
-from datetime import datetime, timezone
 from pathlib import Path
+import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import scorer  # noqa: E402
-from judge import Judge  # noqa: E402
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
-BASE = Path(__file__).resolve().parent.parent
-DATA = BASE / "data"
-DATA.mkdir(exist_ok=True)
+from scorer import score_finding  # noqa: E402
 
-# The verified real case, plus realistic companions so the dashboard has range.
-FINDINGS = [
-    {
-        "domain": "atlantis-software.net",
-        "ecosystem": "npm",
-        "packages": ["node-ipc"],
-        "maintainers": ["atiertant"],
-        "dependents": 424,
-        "downloads_week": 658012,
-        "maintainer_dormant": True,
-        "last_publish": "2022-06-01",
-        "mx_present": True,
-        "rdap": {
-            "domain": "atlantis-software.net",
-            "registered": True,
-            "created": "2026-05-07T11:49:33Z",
-            "expires": "2027-05-07T11:49:33Z",
-            "status": ["client transfer prohibited"],
-            "error": None,
-        },
-        # scored at the attack date: 7 days after re-registration, 7 days
-        # before the malicious versions shipped
-        "_as_of": "2026-05-14T00:00:00Z",
-        "incident": {
-            "title": "node-ipc supply-chain compromise",
-            "date": "2026-05-15",
-            "malicious_versions": ["9.1.6", "9.2.3", "12.0.1"],
-            "detail": (
-                "The maintainer account 'atiertant' (dormant since 2022) was taken "
-                "over via an expired email domain. atlantis-software.net expired in "
-                "January 2025 and was re-registered on 2026-05-07; the attacker set "
-                "up mail, triggered a password reset, and published three trojaned "
-                "versions on 2026-05-14 carrying an 80KB credential stealer that "
-                "exfiltrates via DNS TXT."
-            ),
-        },
-    },
-    {
-        "domain": "diginow.it",
-        "ecosystem": "npm",
-        "packages": ["node-ipc"],
-        "maintainers": ["riaevangelist"],
-        "dependents": 424,
-        "downloads_week": 658012,
-        "maintainer_dormant": False,
-        "mx_present": True,
-        "rdap": {
-            "domain": "diginow.it",
-            "registered": True,
-            "created": "2019-03-04T00:00:00Z",
-            "expires": "2027-03-04T00:00:00Z",
-            "status": ["ok"],
-            "error": None,
-        },
-    },
-    {
-        "domain": "sagoldik.com",
-        "ecosystem": "pypi",
-        "packages": ["requests"],
-        "maintainers": ["graffatcolmingov@gmail.com"],
-        "dependents": 0,
-        "downloads_week": 308000000,
-        "maintainer_dormant": False,
-        "mx_present": False,
-        "rdap": {
-            "domain": "sagoldik.com",
-            "registered": True,
-            "created": "2026-08-19T00:00:00Z",
-            "expires": "2026-11-19T00:00:00Z",
-            "status": ["client transfer prohibited"],
-            "error": None,
-        },
-    },
-    {
-        "domain": "shazow.net",
-        "ecosystem": "pypi",
-        "packages": ["urllib3", "rq", "asyncpg"],
-        "maintainers": ["andrey.petrov@shazow.net"],
-        "dependents": 0,
-        "downloads_week": 42000000,
-        "maintainer_dormant": False,
-        "mx_present": True,
-        "rdap": {
-            "domain": "shazow.net",
-            "registered": True,
-            "created": "2011-05-06T00:00:00Z",
-            "expires": "2027-05-06T00:00:00Z",
-            "status": ["ok"],
-            "error": None,
-        },
-    },
-    {
-        "domain": "projmate.io",
-        "ecosystem": "npm",
-        "packages": ["projmate-cli", "projmate-core"],
-        "maintainers": ["dev@projmate.io"],
-        "dependents": 1200,
-        "downloads_week": 24000,
-        "maintainer_dormant": True,
-        "mx_present": False,
-        "rdap": {
-            "domain": "projmate.io",
-            "registered": False,
-            "created": None,
-            "expires": None,
-            "status": [],
-            "error": None,
-        },
-    },
-    {
-        "domain": "kennethreitz.org",
-        "ecosystem": "pypi",
-        "packages": ["requests"],
-        "maintainers": ["me@kennethreitz.org"],
-        "dependents": 0,
-        "downloads_week": 308000000,
-        "maintainer_dormant": True,
-        "mx_present": True,
-        "rdap": {
-            "domain": "kennethreitz.org",
-            "registered": True,
-            "created": "2012-04-11T00:00:00Z",
-            "expires": "2026-12-01T00:00:00Z",
-            "status": ["ok"],
-            "error": None,
-        },
-    },
-    {
-        "domain": "encore-devs.com",
-        "ecosystem": "npm",
-        "packages": ["encore"],
-        "maintainers": ["team@encore-devs.com"],
-        "dependents": 40,
-        "downloads_week": 900,
-        "maintainer_dormant": True,
-        "mx_present": False,
-        "rdap": {
-            "domain": "encore-devs.com",
-            "registered": True,
-            "created": "2020-02-02T00:00:00Z",
-            "expires": "2027-08-15T00:00:00Z",
-            "status": ["ok"],
-            "error": None,
-        },
-    },
-]
+SOURCE_PATH = ROOT / "data" / "backtest" / "labeled_set.json"
+OUTPUT_PATH = ROOT / "data" / "cached_run.json"
 
 
-def main() -> None:
-    judge = Judge()
-    out = []
-    for f in FINDINGS:
-        as_of = f.pop("_as_of", None)
-        if as_of:
-            scored = scorer.score_finding(
-                f, now=datetime.fromisoformat(as_of.replace("Z", "+00:00"))
-            )
-        else:
-            scored = scorer.score_finding(f)
-        merged = dict(f)
-        merged.update({k: scored[k] for k in ("risk", "severity", "signals", "reasoning")})
-        merged["narrative"] = judge.narrate(merged)
-        out.append(merged)
-
-    payload = {
-        "seeded": True,
-        "generated": datetime.now(timezone.utc).isoformat(),
-        "note": (
-            "Seeded demo run. The atlantis-software.net case is the real node-ipc "
-            "compromise: RDAP verified live 2026-10-11 (created 2026-05-07), "
-            "malicious versions 9.1.6/9.2.3/12.0.1 published 2026-05-14. "
-            "Scores computed by the real scorer; narratives by the live judge "
-            "backend at generation time."
-        ),
-        "stats": {
-            "total": len(out),
-            "critical": sum(1 for x in out if x["severity"] == "CRITICAL"),
-            "high": sum(1 for x in out if x["severity"] == "HIGH"),
-            "medium": sum(1 for x in out if x["severity"] == "MEDIUM"),
-            "low": sum(1 for x in out if x["severity"] == "LOW"),
-        },
-        "findings": sorted(out, key=lambda x: -x["risk"]),
+def _cached_finding(record: dict) -> dict:
+    package = record.get("package")
+    finding = {
+        "domain": record["domain"],
+        "packages": [package] if isinstance(package, str) and package else [],
+        "maintainers": ["maintainer-1"] if package else [],
+        "dependents": record.get("dependents"),
+        "downloads_week": record.get("downloads_week"),
+        "rdap": record.get("rdap") or {},
     }
-    (DATA / "cached_run.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print(json.dumps(payload["stats"], indent=1))
-    for x in payload["findings"]:
-        print(f"  {x['risk']:3d} {x['severity']:8s} {x['domain']}")
-    print("wrote", DATA / "cached_run.json")
+    as_of = dt.datetime.fromisoformat(record["as_of"].replace("Z", "+00:00"))
+    finding.update(score_finding(finding, now=as_of))
+    finding["as_of"] = record["as_of"]
+    if package == "node-ipc":
+        finding["ecosystem"] = "npm"
+        finding["incident"] = (
+            "Public reports associate the maintainer account and malicious node-ipc releases "
+            "published on 2026-05-14 with this domain. Email takeover is a reported hypothesis, "
+            "not directly observed."
+        )
+        finding["provenance"] = {
+            "source": "historical-reconstruction",
+            "fetched_at": record["rdap"].get("fetched_at"),
+            "source_urls": [
+                record["rdap"].get("source_url"),
+                record.get("package_source_url"),
+                record.get("downloads_source_url"),
+                *(record.get("label_source") if isinstance(record.get("label_source"), list) else []),
+            ],
+            "source_fetches": {
+                "rdap": record["rdap"].get("fetched_at"),
+                "npm_registry": record.get("package_fetched_at"),
+                "npm_downloads": record.get("downloads_fetched_at"),
+            },
+            "notes": (
+                "Scored as of the day before the first malicious npm publish using the verified RDAP creation event; "
+                "weekly downloads are the live npm snapshot in this record, not a historical value."
+            ),
+        }
+        finding["unverified"] = [
+            "dependents",
+            "historical_downloads_week",
+            "historical_mx_present",
+            "prior_domain_expiration_or_deletion_event",
+            "email_takeover_mechanism",
+        ]
+    else:
+        finding["provenance"] = {
+            "source": "rdap-live-fetch",
+            "fetched_at": record["rdap"].get("fetched_at"),
+            "source_urls": [record["rdap"].get("source_url")],
+            "notes": "Stable-domain control; not an identified package-maintainer association.",
+        }
+        finding["unverified"] = ["package_association", "dependents", "downloads_week"]
+    return finding
+
+
+def build_cached_run(dataset: dict | None = None) -> dict:
+    """Build deterministic replay findings and stats from the local verified snapshot."""
+    if dataset is None:
+        with SOURCE_PATH.open(encoding="utf-8") as stream:
+            dataset = json.load(stream)
+    findings = [_cached_finding(record) for record in dataset.get("domains") or []]
+    findings.sort(key=lambda row: row["risk"], reverse=True)
+    stats = {"total": len(findings), "critical": 0, "high": 0, "medium": 0, "low": 0}
+    for finding in findings:
+        severity = finding["severity"].lower()
+        if severity in stats:
+            stats[severity] += 1
+    recorded_at = dataset.get("recorded_at")
+    return {
+        "mode": "replay",
+        "recorded_at": recorded_at,
+        "generated": recorded_at,
+        "seeded": True,
+        "note": (
+            "Offline replay built from checked-in public-source snapshots. No network or model calls are made; "
+            "unknown values remain null and are listed per finding."
+        ),
+        "stats": stats,
+        "findings": findings,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
+    args = parser.parse_args(argv)
+    replay = build_cached_run()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(replay, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(
+        "Wrote replay data: "
+        + ", ".join(f"{key}={value}" for key, value in replay["stats"].items())
+    )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

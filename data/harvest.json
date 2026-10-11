@@ -1,0 +1,1063 @@
+{
+  "counts": {
+    "domains_checked": 60,
+    "maintainer_domains_found": 60,
+    "packages_scanned": 100,
+    "severity": {
+      "CRITICAL": 1,
+      "HIGH": 4,
+      "LOW": 50,
+      "MEDIUM": 5
+    }
+  },
+  "findings": [
+    {
+      "ecosystem": "npm",
+      "id": "finding-001",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 80,
+      "severity": "CRITICAL",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expires within N days",
+        "expiring soon"
+      ],
+      "tld": "net",
+      "verification": {
+        "reasons": [],
+        "status": "confirmed"
+      },
+      "verified_severity": "CRITICAL"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-002",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 65,
+      "severity": "HIGH",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "confirmed"
+      },
+      "verified_severity": "HIGH"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-003",
+      "needs_manual_check": true,
+      "rdap_error": false,
+      "risk": 65,
+      "severity": "HIGH",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
+      ],
+      "tld": "io",
+      "verification": {
+        "reasons": [
+          "tld_bootstrap_missing"
+        ],
+        "status": "needs_manual_check"
+      },
+      "verified_severity": "UNVERIFIED"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-004",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 65,
+      "severity": "HIGH",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "confirmed"
+      },
+      "verified_severity": "HIGH"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-005",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 65,
+      "severity": "HIGH",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads",
+        "expiring soon"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "confirmed"
+      },
+      "verified_severity": "HIGH"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-006",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 50,
+      "severity": "MEDIUM",
+      "signal_types": [
+        "expires within N days",
+        "expiring soon"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "MEDIUM"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-007",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 45,
+      "severity": "MEDIUM",
+      "signal_types": [
+        "N weekly downloads",
+        "expiring soon"
+      ],
+      "tld": "io",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "MEDIUM"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-008",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 35,
+      "severity": "MEDIUM",
+      "signal_types": [
+        "expiring soon"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "MEDIUM"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-009",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 35,
+      "severity": "MEDIUM",
+      "signal_types": [
+        "expiring soon"
+      ],
+      "tld": "xyz",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "MEDIUM"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-010",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 35,
+      "severity": "MEDIUM",
+      "signal_types": [
+        "expiring soon"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "MEDIUM"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-011",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-012",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-013",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "org",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-014",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-015",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-016",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "org",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-017",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-018",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "uk",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-019",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-020",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-021",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "org",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-022",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "me",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-023",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-024",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "fr",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-025",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "org",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-026",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "de",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-027",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-028",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "es",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-029",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-030",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "gg",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-031",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "ca",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-032",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 30,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-033",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 20,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-034",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 20,
+      "severity": "LOW",
+      "signal_types": [
+        "N dependents",
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-035",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 10,
+      "severity": "LOW",
+      "signal_types": [
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-036",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 10,
+      "severity": "LOW",
+      "signal_types": [
+        "N weekly downloads"
+      ],
+      "tld": "co",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-037",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 10,
+      "severity": "LOW",
+      "signal_types": [
+        "N weekly downloads"
+      ],
+      "tld": "net",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-038",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 10,
+      "severity": "LOW",
+      "signal_types": [
+        "N weekly downloads"
+      ],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-039",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 10,
+      "severity": "LOW",
+      "signal_types": [
+        "N weekly downloads"
+      ],
+      "tld": "io",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-040",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "no",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-041",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-042",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "dev",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-043",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-044",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-045",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "cz",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-046",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "se",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-047",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "net",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-048",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-049",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-050",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "cz",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-051",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-052",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "de",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-053",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "agency",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-054",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "ai",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-055",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-056",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "uk",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-057",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-058",
+      "needs_manual_check": false,
+      "rdap_error": true,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "de",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-059",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "io",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    },
+    {
+      "ecosystem": "npm",
+      "id": "finding-060",
+      "needs_manual_check": false,
+      "rdap_error": false,
+      "risk": 0,
+      "severity": "LOW",
+      "signal_types": [],
+      "tld": "com",
+      "verification": {
+        "reasons": [],
+        "status": "not_applicable"
+      },
+      "verified_severity": "LOW"
+    }
+  ],
+  "generated_at": "2026-10-11T01:26:35.283825+00:00",
+  "notes": [
+    "Domain and package names are withheld from this committed file; see the gitignored data/harvest.local.json for the full local record."
+  ],
+  "redacted": true,
+  "tool_config": {
+    "dns_server": "https://dns.google/resolve",
+    "package_limit": 100,
+    "rdap_servers": [
+      "https://data.iana.org/rdap/dns.json",
+      "repository TLD fallback map"
+    ],
+    "request_timeout_seconds": {
+      "dns": 5,
+      "npm_pypi": 12,
+      "rdap": 15
+    },
+    "source_lists": [
+      "npm registry search API, popularity:1"
+    ],
+    "time_budget_seconds": 540,
+    "verification_concurrency": 4
+  },
+  "verification": {
+    "confirmed": 4,
+    "not_applicable": 55,
+    "reasons": {
+      "tld_bootstrap_missing": 1
+    },
+    "uncertain": 1
+  }
+}

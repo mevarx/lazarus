@@ -1,307 +1,207 @@
 {
+  "mode": "replay",
+  "recorded_at": "2026-10-11T01:22:16Z",
+  "generated": "2026-10-11T01:22:16Z",
   "seeded": true,
-  "generated": "2026-10-10T19:22:57.117891+00:00",
-  "note": "Seeded demo run. The atlantis-software.net case is the real node-ipc compromise: RDAP verified live 2026-10-11 (created 2026-05-07), malicious versions 9.1.6/9.2.3/12.0.1 published 2026-05-14. Scores computed by the real scorer; narratives by the live judge backend at generation time.",
+  "note": "Offline replay built from checked-in public-source snapshots. No network or model calls are made; unknown values remain null and are listed per finding.",
   "stats": {
-    "total": 7,
-    "critical": 3,
+    "total": 3,
+    "critical": 0,
     "high": 1,
     "medium": 0,
-    "low": 3
+    "low": 2
   },
   "findings": [
     {
       "domain": "atlantis-software.net",
-      "ecosystem": "npm",
       "packages": [
         "node-ipc"
       ],
       "maintainers": [
-        "atiertant"
+        "maintainer-1"
       ],
-      "dependents": 424,
-      "downloads_week": 658012,
-      "maintainer_dormant": true,
-      "last_publish": "2022-06-01",
-      "mx_present": true,
+      "dependents": null,
+      "downloads_week": 676227,
       "rdap": {
-        "domain": "atlantis-software.net",
+        "source_url": "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
         "registered": true,
         "created": "2026-05-07T11:49:33Z",
         "expires": "2027-05-07T11:49:33Z",
         "status": [
           "client transfer prohibited"
         ],
-        "error": null
-      },
-      "incident": {
-        "title": "node-ipc supply-chain compromise",
-        "date": "2026-05-15",
-        "malicious_versions": [
-          "9.1.6",
-          "9.2.3",
-          "12.0.1"
+        "events": [
+          {
+            "eventAction": "registration",
+            "eventDate": "2026-05-07T11:49:33Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2027-05-07T11:49:33Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-05-07T11:49:38Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-11T01:02:53Z"
+          }
         ],
-        "detail": "The maintainer account 'atiertant' (dormant since 2022) was taken over via an expired email domain. atlantis-software.net expired in January 2025 and was re-registered on 2026-05-07; the attacker set up mail, triggered a password reset, and published three trojaned versions on 2026-05-14 carrying an 80KB credential stealer that exfiltrates via DNS TXT."
-      },
-      "risk": 95,
-      "severity": "CRITICAL",
-      "signals": [
-        "recently re-registered",
-        "424 dependents",
-        "658012 weekly downloads",
-        "dormant maintainer",
-        "MX present on re-registered domain"
-      ],
-      "reasoning": [
-        "Domain was created only 6 days ago (< 180d), consistent with a re-registration after expiry (+50).",
-        "424 dependent packages (>= 100) ride on this domain (+10).",
-        "658012 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10).",
-        "Maintainer has not published in 24+ months, so a domain-loss event would likely go unnoticed (+15).",
-        "Domain has MX records and was recently re-registered \u2014 the mailbox is live and could receive a password-reset email (+10)."
-      ],
-      "narrative": {
-        "verdict": "High risk: atlantis-software.net domain, maintainer 'atiertant', demands immediate investigation due to suspicious re-registration and widespread use.",
-        "narrative": "The domain recently re-registered with a new owner, coupled with a massive number of dependents (424) and high weekly downloads (658,012), strongly suggests compromise. The dormant maintainer, 'atiertant', further amplifies the concern, potentially indicating a stolen identity. An attacker could leverage this compromised package to inject malware into numerous systems, exploiting the vulnerable software and its wide distribution.",
-        "recommendation": "Immediately contact 'atiertant' (if possible) to verify their identity and control over the 'node-ipc' package; conduct thorough code review and vulnerability scanning."
-      }
-    },
-    {
-      "domain": "sagoldik.com",
-      "ecosystem": "pypi",
-      "packages": [
-        "requests"
-      ],
-      "maintainers": [
-        "graffatcolmingov@gmail.com"
-      ],
-      "dependents": 0,
-      "downloads_week": 308000000,
-      "maintainer_dormant": false,
-      "mx_present": false,
-      "rdap": {
-        "domain": "sagoldik.com",
-        "registered": true,
-        "created": "2026-08-19T00:00:00Z",
-        "expires": "2026-11-19T00:00:00Z",
-        "status": [
-          "client transfer prohibited"
-        ],
-        "error": null
-      },
-      "risk": 95,
-      "severity": "CRITICAL",
-      "signals": [
-        "recently re-registered",
-        "expiring soon",
-        "308000000 weekly downloads"
-      ],
-      "reasoning": [
-        "Domain was created only 52 days ago (< 180d), consistent with a re-registration after expiry (+50).",
-        "Domain expires in 39 days (< 90d) (+35).",
-        "308000000 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10)."
-      ],
-      "narrative": {
-        "verdict": "sagoldik.com domain risk: CRITICAL - graffatcolmingov@gmail.com maintainer email is highly vulnerable.",
-        "narrative": "The scanner flagged sagoldik.com due to recent domain re-registration, an imminent email expiration, and extremely high download volume (308M weekly) of the 'requests' package. An attacker could leverage this compromised maintainer account to inject malicious code into the 'requests' package, affecting a vast number of applications relying on it. This could lead to severe security breaches and widespread system compromises.",
-        "recommendation": "Immediately contact Google to verify the validity of graffatcolmingov@gmail.com and investigate its ownership, as it is likely a newly registered and potentially fraudulent account."
-      }
-    },
-    {
-      "domain": "projmate.io",
-      "ecosystem": "npm",
-      "packages": [
-        "projmate-cli",
-        "projmate-core"
-      ],
-      "maintainers": [
-        "dev@projmate.io"
-      ],
-      "dependents": 1200,
-      "downloads_week": 24000,
-      "maintainer_dormant": true,
-      "mx_present": false,
-      "rdap": {
-        "domain": "projmate.io",
-        "registered": false,
-        "created": null,
-        "expires": null,
-        "status": [],
-        "error": null
-      },
-      "risk": 95,
-      "severity": "CRITICAL",
-      "signals": [
-        "domain unregistered",
-        "1200 dependents",
-        "dormant maintainer"
-      ],
-      "reasoning": [
-        "RDAP reports the domain is not registered (+60): anyone can claim it and take over the maintainer's email.",
-        "1200 dependent packages (>= 1000) ride on this domain (+20).",
-        "Maintainer has not published in 24+ months, so a domain-loss event would likely go unnoticed (+15)."
-      ],
-      "narrative": {
-        "verdict": "projmate.io domain is critically vulnerable due to unregistered status, many dependents, and a dormant maintainer.",
-        "narrative": "The projmate.io domain being unregistered suggests a lack of active management and control, creating a significant opportunity for malicious actors. With 1,200 dependents relying on this package, a compromise could have widespread impact across numerous projects. The dormant maintainer adds further risk, as it's unclear who is monitoring and responding to vulnerabilities. An attacker could potentially inject malicious code into the core packages, impacting a large number of users and systems.",
-        "recommendation": "Immediately verify the domain registration and contact the listed maintainer (dev@projmate.io) to confirm their ongoing involvement and security practices. Also, implement multi-factor authentication for all accounts associated with projmate.io."
-      }
-    },
-    {
-      "domain": "kennethreitz.org",
-      "ecosystem": "pypi",
-      "packages": [
-        "requests"
-      ],
-      "maintainers": [
-        "me@kennethreitz.org"
-      ],
-      "dependents": 0,
-      "downloads_week": 308000000,
-      "maintainer_dormant": true,
-      "mx_present": true,
-      "rdap": {
-        "domain": "kennethreitz.org",
-        "registered": true,
-        "created": "2012-04-11T00:00:00Z",
-        "expires": "2026-12-01T00:00:00Z",
-        "status": [
-          "ok"
-        ],
-        "error": null
+        "registrar_events": [],
+        "fetched_at": "2026-10-11T01:22:15Z"
       },
       "risk": 60,
       "severity": "HIGH",
       "signals": [
-        "expiring soon",
-        "308000000 weekly downloads",
-        "dormant maintainer"
+        "recently re-registered",
+        "676227 weekly downloads"
       ],
       "reasoning": [
-        "Domain expires in 51 days (< 90d) (+35).",
-        "308000000 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10).",
-        "Maintainer has not published in 24+ months, so a domain-loss event would likely go unnoticed (+15)."
+        "Domain was created only 6 days ago (< 180d), consistent with a re-registration after expiry (+50).",
+        "676227 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10)."
       ],
-      "narrative": {
-        "verdict": "kennethreitz.org - High Risk: Expiring email, high downloads, and dormant maintainer indicate potential compromise.",
-        "narrative": "The scanner flagged kennethreitz.org due to several concerning signals. The 'expiring soon' alert suggests the email address is nearing its expiration date, while 308 million weekly downloads highlight a significant attack surface. A dormant maintainer further increases the risk, as the package may be unpatched and vulnerable. An attacker could exploit this situation to gain control of the package and potentially inject malicious code into widely used applications.",
-        "recommendation": "Immediately contact me@kennethreitz.org to verify ownership and investigate the email account's expiration status; promptly update the package maintainer information."
-      }
-    },
-    {
-      "domain": "diginow.it",
+      "as_of": "2026-05-13T23:59:59Z",
       "ecosystem": "npm",
-      "packages": [
-        "node-ipc"
-      ],
-      "maintainers": [
-        "riaevangelist"
-      ],
-      "dependents": 424,
-      "downloads_week": 658012,
-      "maintainer_dormant": false,
-      "mx_present": true,
-      "rdap": {
-        "domain": "diginow.it",
-        "registered": true,
-        "created": "2019-03-04T00:00:00Z",
-        "expires": "2027-03-04T00:00:00Z",
-        "status": [
-          "ok"
+      "incident": "Public reports associate the maintainer account and malicious node-ipc releases published on 2026-05-14 with this domain. Email takeover is a reported hypothesis, not directly observed.",
+      "provenance": {
+        "source": "historical-reconstruction",
+        "fetched_at": "2026-10-11T01:22:15Z",
+        "source_urls": [
+          "https://rdap.verisign.com/net/v1/domain/atlantis-software.net",
+          "https://registry.npmjs.org/node-ipc",
+          "https://api.npmjs.org/downloads/point/last-week/node-ipc",
+          "https://www.stepsecurity.io/blog/node-ipc-npm-supply-chain-attack",
+          "https://www.linkedin.com/posts/depi-security_activity-7460796467608338433-y4wJ"
         ],
-        "error": null
+        "source_fetches": {
+          "rdap": "2026-10-11T01:22:15Z",
+          "npm_registry": "2026-10-11T01:21:45Z",
+          "npm_downloads": "2026-10-11T01:21:45Z"
+        },
+        "notes": "Scored as of the day before the first malicious npm publish using the verified RDAP creation event; weekly downloads are the live npm snapshot in this record, not a historical value."
       },
-      "risk": 20,
-      "severity": "LOW",
-      "signals": [
-        "424 dependents",
-        "658012 weekly downloads"
-      ],
-      "reasoning": [
-        "424 dependent packages (>= 100) ride on this domain (+10).",
-        "658012 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10)."
-      ],
-      "narrative": {
-        "verdict": "Diginow.it's node-ipc maintainer (riaevangelist) shows moderate risk due to high dependency count and downloads, indicating potential compromise impact.",
-        "narrative": "The scanner flagged high dependency counts (424) and significant weekly downloads (658,012) for the node-ipc package maintained by riaevangelist. An attacker could potentially exploit a vulnerability in this package, which would then affect a large number of systems relying on it. This highlights a potential supply chain attack vector.",
-        "recommendation": "Immediately review riaevangelist's GitHub account and communication channels for signs of compromise, including unusual activity or requests for access."
-      }
+      "unverified": [
+        "dependents",
+        "historical_downloads_week",
+        "historical_mx_present",
+        "prior_domain_expiration_or_deletion_event",
+        "email_takeover_mechanism"
+      ]
     },
     {
-      "domain": "encore-devs.com",
-      "ecosystem": "npm",
-      "packages": [
-        "encore"
-      ],
-      "maintainers": [
-        "team@encore-devs.com"
-      ],
-      "dependents": 40,
-      "downloads_week": 900,
-      "maintainer_dormant": true,
-      "mx_present": false,
+      "domain": "npmjs.com",
+      "packages": [],
+      "maintainers": [],
+      "dependents": null,
+      "downloads_week": null,
       "rdap": {
-        "domain": "encore-devs.com",
+        "source_url": "https://rdap.verisign.com/com/v1/domain/npmjs.com",
         "registered": true,
-        "created": "2020-02-02T00:00:00Z",
-        "expires": "2027-08-15T00:00:00Z",
+        "created": "2010-03-19T22:27:58Z",
+        "expires": "2031-03-19T22:27:58Z",
         "status": [
-          "ok"
+          "client delete prohibited",
+          "client transfer prohibited",
+          "client update prohibited"
         ],
-        "error": null
+        "events": [
+          {
+            "eventAction": "registration",
+            "eventDate": "2010-03-19T22:27:58Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2031-03-19T22:27:58Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2023-02-20T05:17:27Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-11T01:02:53Z"
+          }
+        ],
+        "registrar_events": [],
+        "fetched_at": "2026-10-11T01:22:15Z"
       },
-      "risk": 15,
+      "risk": 0,
       "severity": "LOW",
-      "signals": [
-        "dormant maintainer"
-      ],
-      "reasoning": [
-        "Maintainer has not published in 24+ months, so a domain-loss event would likely go unnoticed (+15)."
-      ],
-      "narrative": {
-        "verdict": "Encore-devs.com domain presents a low risk (15/100) due to a dormant maintainer, potentially exploitable.",
-        "narrative": "The scanner flagged team@encore-devs.com as a dormant maintainer, indicating limited recent activity. An attacker could leverage this inactivity to compromise the 'encore' package and its dependent software. This could involve introducing malicious code, silently changing dependencies, or simply disrupting service. The high download volume (900/week) amplifies the potential impact.",
-        "recommendation": "Immediately contact team@encore-devs.com to verify their current involvement and establish a communication channel for security updates and vulnerability management."
-      }
+      "signals": [],
+      "reasoning": [],
+      "as_of": "2026-05-13T23:59:59Z",
+      "provenance": {
+        "source": "rdap-live-fetch",
+        "fetched_at": "2026-10-11T01:22:15Z",
+        "source_urls": [
+          "https://rdap.verisign.com/com/v1/domain/npmjs.com"
+        ],
+        "notes": "Stable-domain control; not an identified package-maintainer association."
+      },
+      "unverified": [
+        "package_association",
+        "dependents",
+        "downloads_week"
+      ]
     },
     {
-      "domain": "shazow.net",
-      "ecosystem": "pypi",
-      "packages": [
-        "urllib3",
-        "rq",
-        "asyncpg"
-      ],
-      "maintainers": [
-        "andrey.petrov@shazow.net"
-      ],
-      "dependents": 0,
-      "downloads_week": 42000000,
-      "maintainer_dormant": false,
-      "mx_present": true,
+      "domain": "python.org",
+      "packages": [],
+      "maintainers": [],
+      "dependents": null,
+      "downloads_week": null,
       "rdap": {
-        "domain": "shazow.net",
+        "source_url": "https://rdap.org/domain/python.org",
         "registered": true,
-        "created": "2011-05-06T00:00:00Z",
-        "expires": "2027-05-06T00:00:00Z",
+        "created": "1995-03-27T05:00:00.545Z",
+        "expires": "2033-03-28T05:00:00Z",
         "status": [
-          "ok"
+          "client transfer prohibited"
         ],
-        "error": null
+        "events": [
+          {
+            "eventAction": "transfer",
+            "eventDate": "2013-06-15T23:18:08.545Z"
+          },
+          {
+            "eventAction": "expiration",
+            "eventDate": "2033-03-28T05:00:00Z"
+          },
+          {
+            "eventAction": "registration",
+            "eventDate": "1995-03-27T05:00:00.545Z"
+          },
+          {
+            "eventAction": "last changed",
+            "eventDate": "2026-08-12T05:01:11.536Z"
+          },
+          {
+            "eventAction": "last update of RDAP database",
+            "eventDate": "2026-10-11T01:17:42.705Z"
+          }
+        ],
+        "registrar_events": [],
+        "fetched_at": "2026-10-11T01:22:16Z"
       },
-      "risk": 10,
+      "risk": 0,
       "severity": "LOW",
-      "signals": [
-        "42000000 weekly downloads"
-      ],
-      "reasoning": [
-        "42000000 weekly downloads (>= 100000): a hijacked release reaches a large audience (+10)."
-      ],
-      "narrative": {
-        "verdict": "Shazow.net domain high download volume raises concern; maintainer Andrey Petrov needs immediate review.",
-        "narrative": "The scanner detected extremely high weekly downloads (42 million) for packages maintained by andrey.petrov@shazow.net. This suggests a large and potentially vulnerable user base, making the domain a prime target for attackers seeking to compromise the packages and their dependencies. An attacker could inject malicious code into the packages, exploiting widespread applications relying on them.",
-        "recommendation": "Immediately conduct a thorough security audit of the urllib3, rq, and asyncpg packages, focusing on code review, vulnerability scanning, and dependency management."
-      }
+      "signals": [],
+      "reasoning": [],
+      "as_of": "2026-05-13T23:59:59Z",
+      "provenance": {
+        "source": "rdap-live-fetch",
+        "fetched_at": "2026-10-11T01:22:16Z",
+        "source_urls": [
+          "https://rdap.org/domain/python.org"
+        ],
+        "notes": "Stable-domain control; not an identified package-maintainer association."
+      },
+      "unverified": [
+        "package_association",
+        "dependents",
+        "downloads_week"
+      ]
     }
   ]
 }

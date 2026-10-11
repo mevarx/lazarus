@@ -33,6 +33,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+import guard
+
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = BASE_DIR / "data"
@@ -45,7 +47,26 @@ HOST = os.environ.get("HOST", "127.0.0.1")  # loopback by default: a security
                                           # tool should not listen on the
                                           # venue network. Set HOST=0.0.0.0
                                           # explicitly to expose it.
-PORT = int(os.environ.get("PORT", "8741"))
+try:
+    PORT = int(os.environ.get("PORT", "8741"))
+except ValueError:
+    sys.exit("lazarus: PORT must be an integer")
+
+def _int_env(name: str, default: int, lo: int, hi: int) -> int:
+    try:
+        return max(lo, min(hi, int(os.environ.get(name, default))))
+    except ValueError:
+        return default
+
+
+# Pasted lockfile / package.json cap (bytes) and per-scan dependency cap.
+MAX_UPLOAD_BYTES = _int_env("LAZARUS_MAX_UPLOAD_BYTES", 2_000_000, 1_000, 50_000_000)
+MAX_SCAN_DEPS = _int_env("LAZARUS_MAX_SCAN_DEPS", 200, 1, 5_000)
+MAX_CONCURRENT_SCANS = 2
+_SCAN_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENT_SCANS)
+RATE_LIMITER = guard.RateLimiter()
+# (capacity, refills per minute) per client IP
+RATE_LIMITS = {"read": (120, 600), "ai": (10, 20), "scan": (3, 6)}
 
 CONTENT_TYPES = {
     ".css": "text/css; charset=utf-8",
@@ -62,6 +83,16 @@ CONTENT_TYPES = {
 }
 
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
+
+SECURITY_HEADERS = {
+    "Content-Security-Policy": (
+        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+        "connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    ),
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
 
 _STATE_LOCK = threading.Lock()
 LAST_RUN: dict | None = None
@@ -110,22 +141,18 @@ def _load_persisted_run() -> None:
         LAST_RUN = run
 
 
-def _mask_email_in_text(text: str) -> str:
-    """Mask any bare email inside prose (narratives/recommendations)."""
-    import re as _re
-    return _re.sub(r"([A-Za-z0-9._%+-]{1,64})@([A-Za-z0-9.-]+\.[A-Za-z]{2,})",
-                   lambda m: m.group(1)[:3] + "****@" + m.group(2), text or "")
+def _mask_email_in_text(text: str, handles=()) -> str:
+    """Mask any email in prose and any known maintainer handle."""
+    return guard.redact_maintainer_text(text, handles)
 
 
 def redact_maintainers(findings: list[dict]) -> list[dict]:
-    """Mask maintainer emails before they leave the process.
+    """Strip maintainer identities before anything leaves the process.
 
-    The dashboard also redacts client-side, but a judge can hit /api/findings
-    directly with curl — so the API boundary redacts too. Domain is public
-    registry data and stays; only the mailbox is masked
-    (atiertant@x.net -> ati****@x.net). Non-email usernames pass through.
-    Narrative/recommendation prose is masked too, since seeded narratives
-    name the maintainer inline.
+    A judge can hit /api/findings with curl, so the API boundary redacts, not
+    just the UI. Maintainers become neutral placeholders ("maintainer-1");
+    the count is kept. The domain is public registry data and stays. Handles
+    and emails are also scrubbed from narrative/incident prose.
     """
     out = []
     for f in findings:
@@ -134,24 +161,28 @@ def redact_maintainers(findings: list[dict]) -> list[dict]:
             continue
         g = dict(f)
         maint = g.get("maintainers")
+        handles = [str(m) for m in maint] if isinstance(maint, list) else []
         if isinstance(maint, list):
-            masked = []
-            for m in maint:
-                s = str(m)
-                at = s.find("@")
-                if at > 0:
-                    masked.append(s[:min(3, at)] + "****" + s[at:])
-                else:
-                    masked.append(s)
-            g["maintainers"] = masked
-        narr = g.get("narrative")
-        if isinstance(narr, dict):
-            g["narrative"] = {
-                k: (_mask_email_in_text(v) if isinstance(v, str) else v)
-                for k, v in narr.items()
-            }
+            g["maintainers"] = [f"maintainer-{i}" for i in range(1, len(maint) + 1)]
+            g["maintainer_count"] = len(maint)
+        for key in ("narrative", "incident", "analysis", "verification"):
+            val = g.get(key)
+            if isinstance(val, dict):
+                g[key] = {
+                    k: (_mask_email_in_text(v, handles) if isinstance(v, str) else v)
+                    for k, v in val.items()
+                }
         out.append(g)
     return out
+
+
+def current_mode() -> str:
+    """'live' only when the findings on screen came from a live scan."""
+    with _STATE_LOCK:
+        if LAST_RUN and LAST_RUN.get("findings"):
+            mode = str((LAST_RUN.get("meta") or {}).get("mode") or "")
+            return "live" if mode == "live" else ("repo-scan" if mode == "repo-scan" else "replay")
+    return "replay"
 
 
 def current_findings() -> tuple[list[dict], str]:
@@ -163,7 +194,7 @@ def current_findings() -> tuple[list[dict], str]:
 
 def _record_run(findings: list[dict], meta: dict) -> None:
     global LAST_RUN
-    run = {"findings": findings, "meta": meta}
+    run = {"findings": redact_maintainers(findings), "meta": meta}
     with _STATE_LOCK:
         LAST_RUN = run
     try:
@@ -201,30 +232,36 @@ def compute_stats(findings: list[dict]) -> dict:
     }
 
 
-def blast_radius(findings: list[dict], *, min_severity: str = "HIGH") -> dict:
+AT_RISK_SEVERITIES = frozenset({"CRITICAL", "HIGH"})
+
+
+def blast_radius(findings: list[dict]) -> dict:
     """Aggregate the weekly-download reach controlled by at-risk domains.
 
-    Answers: 'one lapsed domain controls packages with X combined weekly
-    downloads.' Only domains at or above ``min_severity`` (CRITICAL/HIGH by
-    default) count as at-risk; downloads are summed across their packages.
-    A domain appears once even if several findings reference it.
+    Answers: 'lapsed domains put packages with X combined weekly downloads
+    within reach of a takeover.' Only CRITICAL and HIGH domains count; MEDIUM
+    and LOW never do, and the threshold is deliberately not a parameter so
+    the UI, docs and API cannot drift apart. A domain is counted once.
     """
-    order = {"CRITICAL": 3, "HIGH": 2, "MEDIUM": 1, "LOW": 0}
-    threshold = order.get(min_severity.upper(), 2)
     at_risk_downloads = 0
     at_risk_dependents = 0
     at_risk_domains: set[str] = set()
     at_risk_packages: set[str] = set()
+    unverified_dependents = 0
+    unverified_downloads = 0
     worst_domain = None
     worst_downloads = 0
     for f in findings:
         sev = str(f.get("severity") or "LOW").upper()
-        if order.get(sev, 0) < threshold:
+        if sev not in AT_RISK_SEVERITIES:
             continue
         dom = f.get("domain")
-        if not dom:
+        if not dom or dom in at_risk_domains:
             continue
         at_risk_domains.add(dom)
+        # None means "not verified", which is different from a measured zero.
+        unverified_dependents += f.get("dependents") is None
+        unverified_downloads += f.get("downloads_week") is None
         try:
             dl = int(f.get("downloads_week") or 0)
         except (TypeError, ValueError):
@@ -245,6 +282,8 @@ def blast_radius(findings: list[dict], *, min_severity: str = "HIGH") -> dict:
         "at_risk_packages": len(at_risk_packages),
         "combined_weekly_downloads": at_risk_downloads,
         "combined_dependents": at_risk_dependents,
+        "domains_with_unverified_dependents": unverified_dependents,
+        "domains_with_unverified_downloads": unverified_downloads,
         "largest_single_domain": worst_domain,
         "largest_single_downloads": worst_downloads,
     }
@@ -465,10 +504,39 @@ def judge_status() -> dict:
     judge = get_judge()
     live = bool(judge is not None and judge.is_live())
     backend = _judge_backend_name(judge) if judge is not None else "none"
-    return {
+    out = {
         "live": live,
         "backend": f"{backend} (live)" if live else backend,
         "has_key": bool(os.environ.get("GEMINI_API_KEY")),
+    }
+    describe = getattr(judge, "describe", None)
+    if callable(describe):
+        try:
+            d = describe()
+            out["provider"] = {k: d.get(k) for k in (
+                "backend", "model", "model_family", "provider_label", "live",
+                "reason", "models_verified") if k in d}
+        except Exception:  # noqa: BLE001 — status must never break a page load
+            traceback.print_exc()
+    return out
+
+
+def status_payload() -> dict:
+    """Runtime facts the UI and the fresh-clone check can rely on. Never
+    includes secrets — only whether a key is present."""
+    findings, source = current_findings()
+    return {
+        "app": "lazarus",
+        "mode": current_mode(),
+        "source": source,
+        "findings": len(findings),
+        "limits": {
+            "max_upload_bytes": MAX_UPLOAD_BYTES,
+            "max_scan_dependencies": MAX_SCAN_DEPS,
+            "max_concurrent_scans": MAX_CONCURRENT_SCANS,
+        },
+        "host": HOST,
+        **judge_status(),
     }
 
 
@@ -480,8 +548,10 @@ def cached_payload() -> dict:
     safe = redact_maintainers(findings)
     cached["findings"] = safe
     cached.update(judge_status())
-    cached.setdefault("stats", compute_stats(safe))
-    cached.setdefault("blast_radius", blast_radius(safe))
+    # Always derived from the findings so recorded files cannot carry a stale
+    # or differently-defined blast radius.
+    cached["stats"] = compute_stats(safe)
+    cached["blast_radius"] = blast_radius(safe)
     cached.setdefault("graph", build_graph(safe))
     return cached
 
@@ -493,6 +563,7 @@ def findings_payload() -> dict:
         "findings": safe,
         "source": source,
         "seeded": source in ("cached", "seed"),
+        "mode": current_mode(),
         "count": len(findings),
         "stats": compute_stats(safe),
         "blast_radius": blast_radius(safe),
@@ -511,7 +582,38 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "Lazarus/1.0"
 
     def log_message(self, fmt: str, *args) -> None:
-        sys.stderr.write("  %s %s\n" % (self.log_date_time_string(), fmt % args))
+        line = guard.scrub_secrets(fmt % args)
+        sys.stderr.write("  %s %s\n" % (self.log_date_time_string(), line))
+
+    def end_headers(self) -> None:
+        for k, v in SECURITY_HEADERS.items():
+            self.send_header(k, v)
+        super().end_headers()
+
+    def _host_ok(self) -> bool:
+        """Reject foreign Host headers on loopback binds (DNS rebinding)."""
+        if HOST not in ("127.0.0.1", "localhost", "::1"):
+            return True
+        host = (self.headers.get("Host") or "").strip().lower()
+        name = host.rsplit(":", 1)[0] if not host.startswith("[") else host.split("]")[0] + "]"
+        return name in ("127.0.0.1", "localhost", "[::1]")
+
+    def _limited(self, bucket: str) -> bool:
+        """Send 429 and return True when this client exceeded ``bucket``."""
+        cap, per_min = RATE_LIMITS[bucket]
+        ok, retry = RATE_LIMITER.allow(self.client_address[0], bucket, cap, per_min)
+        if ok:
+            return False
+        body = json.dumps({"error": "rate limit exceeded", "status": 429,
+                           "retry_after": retry}).encode("utf-8")
+        self.send_response(429)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Retry-After", str(retry))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+        return True
 
     def _send_json(self, obj, status: int = 200) -> None:
         body = json.dumps(obj, ensure_ascii=False, indent=2).encode("utf-8")
@@ -525,19 +627,42 @@ class Handler(BaseHTTPRequestHandler):
     def _send_error_json(self, status: int, message: str) -> None:
         self._send_json({"error": message, "status": status}, status=status)
 
-    def _read_json_body(self) -> tuple[dict | None, str | None]:
+    def _read_json_body(self, limit: int | None = None) -> tuple[dict | None, tuple[int, str] | None]:
+        """Parse a bounded JSON object body. Returns (body, None) or
+        (None, (http_status, message)); the size check runs before any read."""
+        limit = (MAX_UPLOAD_BYTES + 4096) if limit is None else limit
+        if "chunked" in (self.headers.get("Transfer-Encoding") or "").lower():
+            return None, (411, "chunked bodies are not supported; send Content-Length")
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
-            length = 0
+            return None, (400, "invalid Content-Length")
         if length <= 0:
-            return None, "empty request body"
-        if length > 1_000_000:
-            return None, "request body too large"
+            return None, (400, "empty request body")
+        if length > limit:
+            self.close_connection = True
+            return None, (413, f"request body too large (limit {limit} bytes)")
         try:
-            return json.loads(self.rfile.read(length).decode("utf-8")), None
-        except Exception as e:
-            return None, f"invalid JSON: {e}"
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except Exception:
+            return None, (400, "invalid JSON body")
+        if not isinstance(body, dict):
+            return None, (400, "JSON body must be an object")
+        return body, None
+
+    def _json_or_fail(self, limit: int | None = None) -> dict | None:
+        body, err = self._read_json_body(limit)
+        if err:
+            self._send_error_json(err[0], err[1])
+            return None
+        return body
+
+    def _domain_arg(self, raw) -> str | None:
+        """Validate a domain argument; sends 400 and returns None if bad."""
+        dom = guard.valid_domain(raw)
+        if dom is None:
+            self._send_error_json(400, "domain must be a valid hostname such as example.com")
+        return dom
 
     def _serve_static(self, rel: str) -> None:
         rel = (rel or "index.html").lstrip("/") or "index.html"
@@ -559,7 +684,6 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(body)
 
@@ -628,14 +752,17 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 names = lock_mod.parse_dependencies(content)
             except lock_mod.LockfileError as exc:
-                self._sse_send("failed", {"message": f"could not parse input: {exc}"})
+                self._sse_send("failed", {"message": f"could not parse input: {guard.scrub_secrets(exc)[:200]}"})
                 self._sse_end()
                 return
 
+            capped = len(names) > MAX_SCAN_DEPS
+            names = names[:MAX_SCAN_DEPS]
             self._sse_send("start", {
                 "mode": "repo-scan",
                 "timestamp": now_iso(),
-                "note": f"scanning {len(names)} dependencies for maintainer email domains",
+                "note": f"scanning {len(names)} dependencies for maintainer email domains"
+                        + (f" (capped at {MAX_SCAN_DEPS})" if capped else ""),
             })
             progress("deps", f"parsed {len(names)} dependencies", 0, len(names))
 
@@ -658,7 +785,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             try:
-                self._sse_send("failed", {"message": str(e)})
+                self._sse_send("failed", {"message": guard.scrub_secrets(e)[:300]})
             except Exception:
                 pass
         finally:
@@ -688,11 +815,11 @@ class Handler(BaseHTTPRequestHandler):
             self._sse_send("finding", {"finding": redact_maintainers([f])[0],
                                        "index": len(findings_out)})
 
-        mode = "demo"
+        mode = "replay"
         try:
             modules = {n: _try_import(n) for n in ("harvester", "rdap", "scorer", "graph", "judge")}
             forced_live = query.get("live", [""])[0] == "1" or os.environ.get("LAZARUS_LIVE") == "1"
-            forced_demo = query.get("demo", [""])[0] == "1"
+            forced_demo = "1" in (query.get("demo", [""])[0], query.get("replay", [""])[0])
             live_ok = bool(
                 forced_live
                 or (
@@ -702,7 +829,7 @@ class Handler(BaseHTTPRequestHandler):
                     and modules.get("scorer")
                 )
             )
-            mode = "live" if live_ok else "demo"
+            mode = "live" if live_ok else "replay"
             self._sse_send("start", {
                 "mode": mode,
                 "timestamp": now_iso(),
@@ -724,12 +851,12 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception as e:
                     traceback.print_exc()
                     findings_out = []
-                    progress("error", f"live pipeline failed ({e}); replaying seeded run")
+                    progress("error", f"live pipeline failed ({guard.scrub_secrets(e)[:200]}); replaying seeded run")
             if not ran_live:
                 self._run_demo(progress, emit_finding)
 
             meta = {
-                "mode": mode if ran_live else "demo",
+                "mode": mode if ran_live else "replay",
                 "finished_at": now_iso(),
                 "elapsed_s": round(time.time() - started, 1),
                 "findings_count": len(findings_out),
@@ -744,7 +871,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             traceback.print_exc()
             try:
-                self._sse_send("failed", {"message": str(e)})
+                self._sse_send("failed", {"message": guard.scrub_secrets(e)[:300]})
             except Exception:
                 pass
         finally:
@@ -754,20 +881,17 @@ class Handler(BaseHTTPRequestHandler):
                 self.close_connection = True
 
     def _run_demo(self, progress, emit_finding) -> None:
-        findings = load_cached_run().get("findings", [])
+        """REPLAY: stream the recorded findings. No network calls are made and
+        nothing here is re-measured; the messages say so."""
+        cached = load_cached_run()
+        findings = cached.get("findings", [])
         total = len(findings)
-        progress("harvest", "replay: maintainer emails harvested — npm search API (500 pkgs) + PyPI top-packages (200)", 0, total)
-        time.sleep(0.4)
-        self._sse_heartbeat()
-        progress("domains", f"replay: {total} unique maintainer domains (free-mail providers excluded)", 0, total)
-        time.sleep(0.4)
-        self._sse_heartbeat()
-        progress("rdap", "replay: registration and expiry resolved via IANA RDAP bootstrap", 0, total)
-        time.sleep(0.5)
-        progress("score", "replay: deterministic risk scoring (INTERFACES.md rules)", 0, total)
+        recorded = cached.get("recorded_at") or cached.get("generated") or "unknown date"
+        progress("replay", f"replaying {total} recorded finding(s) from data/cached_run.json (recorded {recorded}); no network calls", 0, total)
         time.sleep(0.3)
+        self._sse_heartbeat()
         for i, finding in enumerate(findings, 1):
-            time.sleep(0.4)
+            time.sleep(0.25)
             emit_finding(finding)
             progress("emit", f"finding {i}/{total}: {finding.get('domain')}", i, total)
 
@@ -871,8 +995,12 @@ class Handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             path = parsed.path
             query = parse_qs(parsed.query)
+            if not self._host_ok():
+                return self._send_error_json(403, "forbidden host")
             if path in ("/", "/index.html"):
                 return self._serve_static("index.html")
+            if path.startswith("/api/") and self._limited("read"):
+                return None
             if path == "/api/skills":
                 return self._send_json(skills_payload())
             if path == "/api/findings":
@@ -882,8 +1010,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json(build_graph(redact_maintainers(findings)))
             if path == "/api/cached":
                 return self._send_json(cached_payload())
+            if path == "/api/status":
+                return self._send_json(status_payload())
+            if path == "/api/compare":
+                return self._compare(query)
             if path == "/api/run":
-                return self._stream_run(query)
+                if self._limited("scan"):
+                    return None
+                return self._guarded_scan(lambda: self._stream_run(query))
             if path == "/favicon.ico":
                 self.send_response(204)
                 self.send_header("Content-Length", "0")
@@ -894,89 +1028,131 @@ class Handler(BaseHTTPRequestHandler):
             return self._serve_static(path.lstrip("/"))
         except (BrokenPipeError, ConnectionResetError):
             self.close_connection = True
-        except Exception as e:
-            traceback.print_exc()
-            try:
-                self._send_error_json(500, f"internal error: {e}")
-            except Exception:
-                self.close_connection = True
+        except Exception:
+            self._internal_error()
         return None
+
+    def _internal_error(self) -> None:
+        traceback.print_exc()
+        try:
+            self._send_error_json(500, "internal error")
+        except Exception:
+            self.close_connection = True
+
+    def _guarded_scan(self, run) -> None:
+        """Cap concurrent scans; each one fans out to RDAP/npm/PyPI."""
+        if not _SCAN_SLOTS.acquire(blocking=False):
+            return self._send_error_json(429, "too many scans running; try again shortly")
+        try:
+            return run()
+        finally:
+            _SCAN_SLOTS.release()
+
+    def _find_for(self, domain: str) -> dict | None:
+        findings, _ = current_findings()
+        found = next((f for f in findings if f.get("domain") == domain), None)
+        return found if found is not None else find_finding(domain)
+
+    def _compare(self, query: dict) -> None:
+        if self._limited("ai"):
+            return None
+        domain = self._domain_arg((query.get("domain") or [""])[0])
+        if domain is None:
+            return None
+        finding = self._find_for(domain)
+        if finding is None:
+            return self._send_error_json(404, f"no finding for domain: {domain}")
+        compare_mod = _try_import("compare")
+        if compare_mod is None:
+            return self._send_error_json(503, "comparison module unavailable")
+        out = compare_mod.compare_finding(finding, get_judge())
+        return self._send_json(out)
 
     def do_POST(self) -> None:
         try:
             parsed = urlparse(self.path)
-            if parsed.path == "/api/narrate":
-                body, err = self._read_json_body()
-                if err:
-                    return self._send_error_json(400, err)
-                domain = (body or {}).get("domain")
-                if not domain:
-                    return self._send_error_json(400, 'body must be {"domain": "..."}')
-                findings, _ = current_findings()
-                finding = next((f for f in findings if f.get("domain") == domain), None)
-                if finding is None:
-                    finding = find_finding(domain)
-                if finding is None:
-                    return self._send_error_json(404, f"no finding for domain: {domain}")
-                out = narrate_for(finding)
-                return self._send_json({"domain": domain, **out})
-            if parsed.path == "/api/scan-repo":
-                body, err = self._read_json_body()
-                if err:
-                    return self._send_error_json(400, err)
-                content = (body or {}).get("content")
-                if not content or not isinstance(content, str):
-                    return self._send_error_json(
-                        400, 'body must be {"content": "<package.json text>"}'
-                    )
-                return self._stream_repo_scan(content)
-            if parsed.path == "/api/analyze":
-                body, err = self._read_json_body()
-                if err:
-                    return self._send_error_json(400, err)
-                domain = (body or {}).get("domain")
-                if not domain:
-                    return self._send_error_json(400, 'body must be {"domain": "..."}')
-                findings, _ = current_findings()
-                finding = next((f for f in findings if f.get("domain") == domain), None)
-                if finding is None:
-                    finding = find_finding(domain)
+            if not self._host_ok():
+                return self._send_error_json(403, "forbidden host")
+            route = parsed.path
+            if route in ("/api/narrate", "/api/analyze", "/api/triage") and self._limited("ai"):
+                return None
+            if route == "/api/scan-repo" and self._limited("scan"):
+                return None
+            if route in ("/api/narrate", "/api/analyze"):
+                body = self._json_or_fail(limit=16_384)
+                if body is None:
+                    return None
+                domain = self._domain_arg(body.get("domain"))
+                if domain is None:
+                    return None
+                finding = self._find_for(domain)
                 if finding is None:
                     return self._send_error_json(404, f"no finding for domain: {domain}")
+                if route == "/api/narrate":
+                    return self._send_json({"domain": domain, **narrate_for(finding)})
                 judge = get_judge()
                 if judge is None:
                     return self._send_error_json(503, "no judge backend available")
                 return self._send_json({"domain": domain, **judge.analyze(finding)})
-            if parsed.path == "/api/triage":
+            if route == "/api/scan-repo":
+                body = self._json_or_fail()
+                if body is None:
+                    return None
+                content = body.get("content")
+                if not content or not isinstance(content, str):
+                    return self._send_error_json(
+                        400, 'body must be {"content": "<package.json or package-lock.json text>"}'
+                    )
+                if len(content.encode("utf-8")) > MAX_UPLOAD_BYTES:
+                    return self._send_error_json(
+                        413, f"lockfile too large (limit {MAX_UPLOAD_BYTES} bytes)")
+                if "\x00" in content:
+                    return self._send_error_json(400, "content must be text")
+                return self._guarded_scan(lambda: self._stream_repo_scan(content))
+            if route == "/api/triage":
                 findings, _ = current_findings()
                 judge = get_judge()
                 if judge is None:
                     return self._send_error_json(503, "no judge backend available")
-                return self._send_json(judge.triage(findings))
-            return self._send_error_json(404, f"unknown endpoint: {parsed.path}")
+                return self._send_json(judge.triage(redact_maintainers(findings)))
+            return self._send_error_json(404, f"unknown endpoint: {route}")
         except (BrokenPipeError, ConnectionResetError):
             self.close_connection = True
-        except Exception as e:
-            traceback.print_exc()
-            try:
-                self._send_error_json(500, f"internal error: {e}")
-            except Exception:
-                self.close_connection = True
+        except Exception:
+            self._internal_error()
         return None
+
+
+def _parse_args(argv: list[str]) -> tuple[str, int]:
+    host, port = HOST, PORT
+    i = 1
+    while i < len(argv):
+        arg = argv[i]
+        if arg in ("--port", "--host") and i + 1 < len(argv):
+            val, i = argv[i + 1], i + 1
+        elif arg.startswith(("--port=", "--host=")):
+            arg, val = arg.split("=", 1)
+        else:
+            raise SystemExit(f"lazarus: unknown argument {arg!r}\nusage: python app.py [--host H] [--port N]")
+        if arg == "--port":
+            if not val.isdigit() or not 1 <= int(val) <= 65535:
+                raise SystemExit(f"lazarus: invalid port {val!r}")
+            port = int(val)
+        else:
+            host = val
+        i += 1
+    return host, port
 
 
 def main() -> None:
     global PORT, HOST
-    for i, arg in enumerate(sys.argv):
-        if arg == "--port" and i + 1 < len(sys.argv):
-            PORT = int(sys.argv[i + 1])
-        elif arg.startswith("--port="):
-            PORT = int(arg.split("=", 1)[1])
-        elif arg == "--host" and i + 1 < len(sys.argv):
-            HOST = sys.argv[i + 1]
+    HOST, PORT = _parse_args(sys.argv)
     _load_persisted_run()
     if not CACHED_RUN_PATH.is_file():
         print(f"[lazarus] WARNING: {CACHED_RUN_PATH} not found — /api/cached will be empty", file=sys.stderr)
+    if HOST not in ("127.0.0.1", "localhost", "::1"):
+        print(f"[lazarus] WARNING: listening on {HOST}; the API has no authentication. "
+              "Use only on a trusted network.", file=sys.stderr)
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     server.daemon_threads = True
     print(f"[lazarus] serving on http://{HOST}:{PORT}  (Ctrl+C to stop)")

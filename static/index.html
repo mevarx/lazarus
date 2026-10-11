@@ -1,738 +1,134 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lazarus — expired-domain supply-chain watch</title>
-<style>
-:root {
-  --bg: #07090c;
-  --panel: #0c1016;
-  --panel-2: #11161d;
-  --border: #1d242e;
-  --border-2: #2b3644;
-  --text: #dfe6ee;
-  --muted: #8593a5;
-  --faint: #5b6a7f;
-  --accent: #e8c07d;
-  --crit: #ff5c6c;
-  --high: #ff9448;
-  --med: #ffd24a;
-  --low: #47d68d;
-  --mono: ui-monospace, "Cascadia Mono", "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.5;
-}
-code, .mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.hidden { display: none !important; }
-button { font-family: inherit; }
-
-header {
-  position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 14px 22px;
-  background: rgba(7, 9, 12, 0.92);
-  border-bottom: 1px solid var(--border);
-}
-.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.brand-mark {
-  width: 12px; height: 12px; flex: none;
-  background: var(--accent);
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-}
-.brand h1 {
-  margin: 0; font-size: 15px; font-weight: 700;
-  letter-spacing: 0.28em; color: var(--text); white-space: nowrap;
-}
-.brand p { margin: 1px 0 0; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.header-right { display: flex; align-items: center; gap: 10px; flex: none; }
-.pill {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em;
-  padding: 5px 10px; border-radius: 999px;
-  border: 1px solid var(--border-2); background: var(--panel);
-  color: var(--muted); display: inline-flex; align-items: center; gap: 7px;
-  white-space: nowrap;
-}
-.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--faint); flex: none; }
-.pill.live { color: var(--low); border-color: rgba(71, 214, 141, 0.35); }
-.pill.live .dot { background: var(--low); }
-.pill.replay { color: #ffcf6b; border-color: rgba(255, 207, 107, 0.4); }
-.pill.replay .dot { background: #ffcf6b; }
-.pill.offline { color: var(--med); border-color: rgba(255, 210, 74, 0.35); }
-.pill.offline .dot { background: var(--med); }
-.btn {
-  font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
-  padding: 7px 14px; border-radius: 8px;
-  border: 1px solid var(--border-2); background: var(--panel);
-  color: var(--text); cursor: pointer;
-}
-.btn:hover { border-color: var(--accent); color: #fff; }
-.btn:disabled { opacity: 0.55; cursor: wait; }
-.btn.primary { background: rgba(232, 192, 125, 0.08); border-color: rgba(232, 192, 125, 0.45); color: var(--accent); }
-.btn.primary:hover { background: rgba(232, 192, 125, 0.14); color: #f4dcb2; }
-
-.banners { padding: 12px 22px 0; display: flex; flex-direction: column; gap: 8px; }
-.banner {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 10px 14px; border-radius: 10px; font-size: 12.5px;
-  border: 1px solid;
-}
-.banner.warn { background: rgba(255, 210, 74, 0.06); border-color: rgba(255, 210, 74, 0.3); color: #ffe9a8; }
-.banner.danger { background: rgba(255, 92, 108, 0.07); border-color: rgba(255, 92, 108, 0.35); color: #ffb3ba; }
-.banner code { color: inherit; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; font-size: 11.5px; }
-.banner-x {
-  background: none; border: none; color: inherit; opacity: 0.6;
-  font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
-}
-.banner-x:hover { opacity: 1; }
-
-main { padding: 16px 22px 30px; }
-.stats {
-  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px;
-  margin-bottom: 16px;
-}
-.stat {
-  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-  padding: 12px 14px;
-}
-.stat .k { font-size: 9.5px; letter-spacing: 0.14em; color: var(--faint); text-transform: uppercase; }
-.stat .v { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; margin-top: 2px; }
-.stat.crit .v { color: var(--crit); }
-.stat.high .v { color: var(--high); }
-.stat.med .v { color: var(--med); }
-.stat.low .v { color: var(--low); }
-
-.layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-#grid { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.side { display: flex; flex-direction: column; gap: 16px; min-width: 0; position: sticky; top: 84px; }
-.panel {
-  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-  padding: 14px 16px; min-width: 0;
-}
-.panel h2 {
-  margin: 0 0 10px; font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint);
-}
-
-.card {
-  position: relative; overflow: hidden;
-  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
-  padding: 16px 18px 14px 20px;
-  transition: border-color 0.15s ease;
-}
-.card::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--sev-color, var(--faint));
-}
-.card:hover { border-color: var(--border-2); }
-.card.new { animation: fadeUp 0.35s ease both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
-.domain { font-size: 16px; font-weight: 650; word-break: break-all; }
-.sub { font-size: 11px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
-.risk-block { text-align: right; flex: none; }
-.risk-num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 700; line-height: 1; color: var(--sev-color, var(--text)); }
-.sev-pill {
-  display: inline-block; margin-top: 5px;
-  font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em;
-  padding: 2px 8px; border-radius: 999px;
-  color: var(--sev-color, var(--muted));
-  border: 1px solid; border-color: color-mix(in srgb, var(--sev-color, #8593a5) 40%, transparent);
-  background: color-mix(in srgb, var(--sev-color, #8593a5) 10%, transparent);
-}
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
-.chip {
-  font-family: var(--mono); font-size: 10.5px;
-  padding: 3px 8px; border-radius: 6px;
-  background: var(--panel-2); border: 1px solid var(--border); color: var(--muted);
-}
-.meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.meta-grid .k { font-size: 9.5px; letter-spacing: 0.12em; color: var(--faint); text-transform: uppercase; }
-.meta-grid .v { font-size: 12px; margin-top: 2px; word-break: break-word; }
-.meta-grid .v.num { font-size: 12.5px; }
-.card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-.reg { font-size: 11px; color: var(--faint); }
-.reg.bad { color: var(--crit); }
-
-.narrative {
-  margin-top: 12px; padding: 12px 14px;
-  background: var(--panel-2); border: 1px solid var(--border);
-  border-left: 2px solid var(--accent); border-radius: 0 10px 10px 0;
-}
-.narrative .verdict { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
-.narrative p { margin: 6px 0; font-size: 12.5px; color: #c3cedb; }
-.narrative .reco-label { font-size: 9.5px; letter-spacing: 0.14em; color: var(--faint); text-transform: uppercase; margin-top: 10px; }
-.narrative .reco { color: var(--accent); }
-.narrative .backend-tag { display: block; margin-top: 10px; font-family: var(--mono); font-size: 10px; color: var(--faint); }
-.narr-err { font-size: 12.5px; color: #ffb3ba; }
-
-.empty-state {
-  background: var(--panel); border: 1px dashed var(--border-2); border-radius: 12px;
-  padding: 34px 20px; text-align: center; color: var(--muted); font-size: 13px;
-}
-.empty-state .why { margin-top: 6px; font-size: 12px; color: var(--faint); }
-.empty-state .btn { margin-top: 14px; }
-
-.sk-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
-.sk-line { height: 11px; border-radius: 6px; background: linear-gradient(90deg, #10151c 25%, #1a2230 50%, #10151c 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; margin-bottom: 10px; }
-@keyframes shimmer { to { background-position: -200% 0; } }
-
-#graph-svg { width: 100%; height: auto; display: block; }
-#graph-svg .edge { stroke: #2b3644; stroke-width: 1; }
-#graph-svg .gnode { font-family: var(--mono); font-size: 8.5px; fill: var(--muted); }
-.legend { display: flex; gap: 14px; margin-top: 8px; font-size: 10.5px; color: var(--muted); font-family: var(--mono); }
-.legend span { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-
-#scan-log {
-  font-family: var(--mono); font-size: 11px; color: var(--muted);
-  max-height: 240px; overflow-y: auto; padding-right: 4px;
-}
-#scan-log .line { padding: 3px 0; border-bottom: 1px dashed rgba(255, 255, 255, 0.045); word-break: break-word; }
-#scan-log .t { color: var(--faint); }
-#scan-log .stage { color: var(--accent); }
-#scan-log .line.err .stage { color: var(--crit); }
-#scan-log::-webkit-scrollbar { width: 8px; }
-#scan-log::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
-
-footer {
-  padding: 18px 22px 26px; text-align: center;
-  font-size: 11px; color: var(--faint);
-  border-top: 1px solid var(--border);
-}
-footer .num { color: var(--muted); }
-
-@media (max-width: 1080px) {
-  .layout { grid-template-columns: 1fr; }
-  .side { position: static; }
-  .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-@media (max-width: 620px) {
-  header { flex-wrap: wrap; }
-  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  main { padding: 12px 12px 24px; }
-}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title>Lazarus — Supply-chain exposure</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
 </head>
 <body>
-
-<header>
-  <div class="brand">
-    <div class="brand-mark" aria-hidden="true"></div>
-    <div>
-      <h1>LAZARUS</h1>
-      <p>expired-domain supply-chain watch — npm · PyPI · RDAP · Gemma</p>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="Lazarus dashboard">
+      <svg class="brand-mark" viewBox="0 0 36 36" role="img" aria-label="Lazarus mark">
+        <path d="M8 5v26h20M8 18h14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+        <circle cx="27" cy="18" r="3" fill="currentColor"></circle>
+      </svg>
+      <span>LAZARUS</span>
+    </a>
+    <div class="header-status">
+      <span id="mode-badge" class="mode-badge mode-unknown" aria-live="polite">MODE UNKNOWN</span>
+      <span id="provider-status" class="provider-status">Answering provider: unknown</span>
     </div>
-  </div>
-  <div class="header-right">
-    <span class="pill" id="pill-mode" title="Last scan mode"><span class="dot"></span>idle</span>
-    <span class="pill" id="pill-src" title="Data source of the current findings"><span class="dot"></span>source…</span>
-    <span class="pill offline" id="pill-backend" title="Narration backend"><span class="dot"></span>backend…</span>
-    <button class="btn primary" id="run-btn">Run scan</button>
-  </div>
-</header>
+    <div class="header-actions">
+      <label class="sr-only" for="scan-mode">Scan mode</label>
+      <select id="scan-mode" aria-label="Choose scan mode">
+        <option value="replay">Replay recorded data</option>
+        <option value="live">Live scan</option>
+      </select>
+      <button id="run-scan" class="button button-primary" type="button">Run scan</button>
+      <button id="theme-toggle" class="icon-button" type="button" aria-label="Switch to light theme" title="Switch theme">Light</button>
+    </div>
+  </header>
 
-<div class="banners">
-  <div id="banner-nokey" class="banner warn hidden" role="status">
-    <div class="banner-msg">No <code>GEMINI_API_KEY</code> detected — narratives use the offline template. Showing the pre-seeded demo run.</div>
-    <button class="banner-x" data-dismiss="nokey" aria-label="Dismiss">&times;</button>
-  </div>
-  <div id="banner-degraded" class="banner danger hidden" role="alert">
-    <div class="banner-msg">Lazarus API unreachable.</div>
-    <button class="banner-x" data-dismiss="degraded" aria-label="Dismiss">&times;</button>
-  </div>
-</div>
+  <main class="page-shell">
+    <section id="replay-notice" class="replay-notice" hidden aria-live="polite">
+      REPLAY · recorded data, not a live scan
+    </section>
+    <section id="scan-status" class="scan-status" aria-live="polite" hidden>
+      <span class="spinner" aria-hidden="true"></span>
+      <span id="scan-message">Preparing scan…</span>
+    </section>
 
-<main>
-  <section class="stats" aria-label="Scan statistics">
-    <div class="stat"><div class="k">Findings</div><div class="v num" id="st-total">—</div></div>
-    <div class="stat crit"><div class="k">Critical</div><div class="v num" id="st-crit">—</div></div>
-    <div class="stat high"><div class="k">High</div><div class="v num" id="st-high">—</div></div>
-    <div class="stat med"><div class="k">Medium</div><div class="v num" id="st-med">—</div></div>
-    <div class="stat low"><div class="k">Low</div><div class="v num" id="st-low">—</div></div>
-    <div class="stat"><div class="k">Avg risk</div><div class="v num" id="st-avg">—</div></div>
-    <div class="stat"><div class="k">Dependents</div><div class="v num" id="st-dep">—</div></div>
-  </section>
+    <section class="page-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Exposure overview</p>
+        <h1 id="page-title">Supply-chain findings</h1>
+        <p class="subheading">Review domains, risk signals, and independent assessment.</p>
+      </div>
+      <p id="updated-at" class="updated-at">Updated —</p>
+    </section>
 
-  <div class="layout">
-    <div id="grid" aria-live="polite"></div>
-    <div class="side">
-      <div class="panel">
-        <h2>Dependency graph</h2>
-        <svg id="graph-svg" viewBox="0 0 640 480" role="img" aria-label="Domain to maintainer to package graph"></svg>
-        <div class="legend">
-          <span><i style="background:#8593a5"></i>domain</span>
-          <span><i style="background:#3d4c66"></i>maintainer</span>
-          <span><i style="background:#3d4c66"></i>package</span>
+    <section class="kpi-grid" aria-label="Finding totals">
+      <article class="kpi-card kpi-total"><span>Total findings</span><strong id="stat-total">—</strong></article>
+      <article class="kpi-card kpi-critical"><span>Critical</span><strong id="stat-critical">—</strong></article>
+      <article class="kpi-card kpi-high"><span>High</span><strong id="stat-high">—</strong></article>
+      <article class="kpi-card kpi-medium"><span>Medium</span><strong id="stat-medium">—</strong></article>
+      <article class="kpi-card kpi-low"><span>Low</span><strong id="stat-low">—</strong></article>
+    </section>
+
+    <section class="blast-card" aria-labelledby="blast-title">
+      <div class="section-title-row">
+        <div>
+          <p class="eyebrow">Blast radius</p>
+          <h2 id="blast-title">Potential reach</h2>
         </div>
+        <p class="rule-note">Only CRITICAL and HIGH domains count. MEDIUM and LOW are excluded.</p>
       </div>
-      <div class="panel">
-        <h2>Scan log</h2>
-        <div id="scan-log"></div>
+      <div class="blast-grid">
+        <div><span>At-risk domains</span><strong id="blast-domains">—</strong></div>
+        <div><span>At-risk packages</span><strong id="blast-packages">—</strong></div>
+        <div><span>Combined weekly downloads</span><strong id="blast-downloads">—</strong></div>
+        <div><span>Combined dependents</span><strong id="blast-dependents">—</strong></div>
       </div>
-    </div>
-  </div>
-</main>
+      <p id="blast-largest" class="blast-largest">Largest single domain: —</p>
+    </section>
 
-<footer>
-  MLH Hacktoberfest · SRM University AP · stdlib-only, zero external assets · <span class="num" id="foot-src">booting…</span>
-</footer>
+    <section class="workspace-grid" aria-label="Findings and details">
+      <section class="findings-card" aria-labelledby="findings-title">
+        <div class="section-title-row findings-heading">
+          <div>
+            <p class="eyebrow">Assessment queue</p>
+            <h2 id="findings-title">Findings</h2>
+          </div>
+          <span id="finding-count" class="count-pill">—</span>
+        </div>
+        <div class="filters">
+          <label class="search-field">
+            <span class="sr-only">Search findings</span>
+            <input id="search-findings" type="search" placeholder="Search domain or package" autocomplete="off">
+          </label>
+          <label class="filter-label" for="severity-filter">Severity</label>
+          <select id="severity-filter">
+            <option value="all">All levels</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+          <button id="sort-risk" class="button button-secondary" type="button" aria-label="Sort findings by risk descending">Risk ↓</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Domain</th><th scope="col">Severity</th><th scope="col">Risk</th><th scope="col">Ecosystem</th></tr></thead>
+            <tbody id="findings-body"><tr><td colspan="4" class="table-message">Loading findings…</td></tr></tbody>
+          </table>
+        </div>
+        <p id="findings-error" class="error-message" hidden></p>
+      </section>
 
-<noscript>
-  <div style="padding:20px;color:#ffb3ba">Lazarus needs JavaScript for the live dashboard. The JSON APIs (/api/findings, /api/graph, /api/cached) work without it.</div>
-</noscript>
+      <aside id="detail-pane" class="detail-card" aria-labelledby="detail-title" aria-live="polite" tabindex="-1">
+        <div class="detail-empty">
+          <span class="detail-mark" aria-hidden="true">L</span>
+          <h2 id="detail-title">Finding details</h2>
+          <p>Select a finding to inspect its signals and comparison.</p>
+        </div>
+      </aside>
+    </section>
 
-<script>
-"use strict";
-
-var SEV = { CRITICAL: "#ff5c6c", HIGH: "#ff9448", MEDIUM: "#ffd24a", LOW: "#47d68d" };
-
-var state = {
-  findings: [],
-  meta: {},
-  narrations: {},
-  cards: {},
-  es: null,
-  hasData: false
-};
-
-function $(sel, el) { return (el || document).querySelector(sel); }
-function esc(s) {
-  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-  });
-}
-
-// Redact maintainer emails for display: show enough to identify the domain,
-// never the full mailbox. "atiertant@atlantis-software.net" -> "ati****@atlantis-software.net"
-// A bare domain (no @) is shown as-is — it is already public registry data.
-function redactEmail(v) {
-  var s = String(v || "").trim();
-  var at = s.indexOf("@");
-  if (at <= 0) return s;                 // no mailbox part -> nothing to redact
-  var local = s.slice(0, at), dom = s.slice(at);   // dom keeps the "@"
-  var head = local.slice(0, Math.min(3, local.length));
-  return head + "****" + dom;
-}
-
-function redactList(arr) {
-  return (arr || []).map(redactEmail).join(", ");
-}
-function fmt(n) { try { return Number(n || 0).toLocaleString("en-US"); } catch (e) { return String(n || 0); } }
-function sevOf(risk) {
-  risk = Number(risk) || 0;
-  if (risk >= 80) return "CRITICAL";
-  if (risk >= 60) return "HIGH";
-  if (risk >= 35) return "MEDIUM";
-  return "LOW";
-}
-function sevColor(risk) { return SEV[sevOf(risk)] || "#8593a5"; }
-
-function showBanner(kind, msg) {
-  var el = $("#banner-" + kind);
-  if (!el) return;
-  if (msg) { var m = $(".banner-msg", el); if (m) m.innerHTML = msg; }
-  el.classList.remove("hidden");
-}
-function hideBanner(kind) {
-  var el = $("#banner-" + kind);
-  if (el) el.classList.add("hidden");
-}
-document.querySelectorAll("[data-dismiss]").forEach(function (btn) {
-  btn.addEventListener("click", function () { hideBanner(btn.getAttribute("data-dismiss")); });
-});
-
-function logLine(stage, msg, isErr) {
-  var log = $("#scan-log");
-  var d = new Date();
-  var t = ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2) + ":" + ("0" + d.getSeconds()).slice(-2);
-  var div = document.createElement("div");
-  div.className = "line" + (isErr ? " err" : "");
-  div.innerHTML = '<span class="t">' + t + '</span> <span class="stage">' + esc(stage) + "</span> — " + esc(msg);
-  log.appendChild(div);
-  while (log.children.length > 80) log.removeChild(log.firstChild);
-  log.scrollTop = log.scrollHeight;
-}
-
-function renderSkeletons() {
-  var grid = $("#grid");
-  grid.innerHTML = "";
-  for (var i = 0; i < 4; i++) {
-    var sk = document.createElement("div");
-    sk.className = "sk-card";
-    sk.setAttribute("data-sk", "1");
-    sk.innerHTML =
-      '<div class="sk-line" style="width:45%"></div>' +
-      '<div class="sk-line" style="width:28%"></div>' +
-      '<div class="sk-line" style="width:90%;margin-top:16px"></div>' +
-      '<div class="sk-line" style="width:60%"></div>' +
-      '<div class="sk-line" style="width:75%;margin-bottom:0"></div>';
-    grid.appendChild(sk);
-  }
-}
-
-function clearSkeletons() {
-  document.querySelectorAll("[data-sk]").forEach(function (el) { el.remove(); });
-}
-
-function showEmpty(why) {
-  var grid = $("#grid");
-  grid.innerHTML =
-    '<div class="empty-state">No findings yet. Run a scan to populate results.' +
-    (why ? '<div class="why">' + esc(why) + "</div>" : "") +
-    '<br><button class="btn" onclick="startStream()">Run scan</button></div>';
-}
-
-function computeStats(findings) {
-  var s = { total: findings.length, critical: 0, high: 0, medium: 0, low: 0, avg_risk: 0, total_dependents: 0 };
-  var risks = 0;
-  findings.forEach(function (f) {
-    var sev = String(f.severity || sevOf(f.risk)).toUpperCase();
-    if (sev === "CRITICAL") s.critical++;
-    else if (sev === "HIGH") s.high++;
-    else if (sev === "MEDIUM") s.medium++;
-    else s.low++;
-    risks += Number(f.risk) || 0;
-    s.total_dependents += Number(f.dependents) || 0;
-  });
-  s.avg_risk = findings.length ? Math.round(risks / findings.length) : 0;
-  return s;
-}
-
-function renderStats() {
-  var s = state.meta.stats || computeStats(state.findings);
-  $("#st-total").textContent = fmt(s.total != null ? s.total : state.findings.length);
-  $("#st-crit").textContent = fmt(s.critical);
-  $("#st-high").textContent = fmt(s.high);
-  $("#st-med").textContent = fmt(s.medium);
-  $("#st-low").textContent = fmt(s.low);
-  $("#st-avg").textContent = fmt(s.avg_risk);
-  $("#st-dep").textContent = fmt(s.total_dependents);
-}
-
-function narrativeHtml(narr, backend) {
-  return (
-    '<div class="verdict">' + esc(narr.verdict) + "</div>" +
-    "<p>" + esc(narr.narrative) + "</p>" +
-    '<div class="reco-label">Recommendation</div>' +
-    '<p class="reco">' + esc(narr.recommendation) + "</p>" +
-    '<span class="backend-tag">narrated by: ' + esc(backend || "gemma") + "</span>"
-  );
-}
-
-function cardHtml(f) {
-  var sev = String(f.severity || sevOf(f.risk)).toUpperCase();
-  var color = SEV[sev] || "#8593a5";
-  var rdap = f.rdap || {};
-  var regLine, regBad = false;
-  if (rdap.registered === false && !rdap.error) {
-    regLine = "RDAP: not registered"; regBad = true;
-  } else if (rdap.error) {
-    regLine = "RDAP: lookup failed"; regBad = true;
-  } else {
-    regLine = "RDAP: " + ((rdap.status && rdap.status[0]) || "ok");
-  }
-  var dates;
-  if (rdap.created && rdap.expires) {
-    dates = "created " + esc(rdap.created) + " · expires " + esc(rdap.expires);
-  } else if (rdap.error) {
-    dates = "registration dates unknown";
-  } else {
-    dates = "no registration record";
-  }
-  var chips = (f.signals || []).map(function (s) { return '<span class="chip">' + esc(s) + "</span>"; }).join("");
-  var narr = state.narrations[f.domain];
-  return (
-    '<article class="card" data-domain="' + esc(f.domain) + '" style="--sev-color:' + color + '">' +
-      '<div class="card-top">' +
-        "<div>" +
-          '<div class="domain">' + esc(f.domain) + "</div>" +
-          '<div class="sub num">' + esc(f.ecosystem || "npm") + " · " + dates + "</div>" +
-        "</div>" +
-        '<div class="risk-block">' +
-          '<div class="risk-num">' + esc(f.risk != null ? f.risk : "—") + "</div>" +
-          '<span class="sev-pill">' + esc(sev) + "</span>" +
-        "</div>" +
-      "</div>" +
-      (chips ? '<div class="chips">' + chips + "</div>" : "") +
-      '<div class="meta-grid">' +
-        '<div><div class="k">packages</div><div class="v num">' + esc((f.packages || []).join(", ") || "—") + "</div></div>" +
-        '<div><div class="k">dependents</div><div class="v num">' + fmt(f.dependents) + "</div></div>" +
-        '<div><div class="k">downloads / wk</div><div class="v num">' + fmt(f.downloads_week) + "</div></div>" +
-        '<div><div class="k">maintainers</div><div class="v num">' + esc(redactList(f.maintainers) || "—") + "</div></div>" +
-      "</div>" +
-      '<div class="card-foot">' +
-        '<button class="btn narrate" onclick="narrate(this)">Narrate with Gemma</button>' +
-        '<span class="reg mono' + (regBad ? " bad" : "") + '">' + esc(regLine) + "</span>" +
-      "</div>" +
-      '<div class="narrative hidden"></div>' +
-    "</article>"
-  );
-}
-
-function upsertCard(f, animate) {
-  var grid = $("#grid");
-  clearSkeletons();
-  var existing = state.cards[f.domain];
-  var tmp = document.createElement("div");
-  tmp.innerHTML = cardHtml(f);
-  var el = tmp.firstElementChild;
-  if (animate) el.classList.add("new");
-  if (existing) { existing.replaceWith(el); }
-  else { grid.appendChild(el); }
-  state.cards[f.domain] = el;
-}
-
-function renderAll(findings) {
-  var grid = $("#grid");
-  grid.innerHTML = "";
-  state.cards = {};
-  findings.slice().sort(function (a, b) { return (Number(b.risk) || 0) - (Number(a.risk) || 0); })
-    .forEach(function (f) { upsertCard(f, false); });
-}
-
-function applyFindings(data) {
-  state.meta = data;
-  state.findings = data.findings || [];
-  state.hasData = true;
-  hideBanner("degraded");
-  if (data.source === "cached" && data.has_key === false) {
-    showBanner("nokey");
-  } else {
-    hideBanner("nokey");
-  }
-  if (!state.findings.length) {
-    showEmpty("The seeded run has no findings. Run a scan, or check data/cached_run.json.");
-  } else {
-    renderAll(state.findings);
-  }
-  renderStats();
-  var pill = $("#pill-backend");
-  pill.querySelectorAll(".dot").forEach(function (d) { d.remove(); });
-  var backend = data.backend || "offline-template";
-  pill.textContent = backend;
-  pill.prepend(Object.assign(document.createElement("span"), { className: "dot" }));
-  pill.classList.toggle("live", backend.indexOf("live") !== -1);
-  pill.classList.toggle("offline", backend.indexOf("live") === -1);
-  // Data-source badge: seeded/replay is NOT a live scan — say so visibly.
-  setSourcePill(data.source, data.seeded);
-  $("#foot-src").textContent = "findings source: " + (data.source || "?");
-  fetchGraph();
-}
-
-function setSourcePill(source, seeded) {
-  var pill = $("#pill-src");
-  pill.querySelectorAll(".dot").forEach(function (d) { d.remove(); });
-  var isSeeded = source === "cached" || source === "seed" || seeded === true;
-  pill.textContent = isSeeded ? "REPLAY · seeded" : "LIVE · fresh scan";
-  pill.prepend(Object.assign(document.createElement("span"), { className: "dot" }));
-  pill.classList.toggle("replay", isSeeded);
-  pill.classList.toggle("live", !isSeeded);
-  pill.title = isSeeded
-    ? "Seeded replay (data/cached_run.json) — not a live scan. The atlantis-software.net case is real & RDAP-verified; companions are realistic."
-    : "Live scan — findings harvested and RDAP-resolved just now.";
-}
-
-function setModePill(mode) {
-  var pill = $("#pill-mode");
-  pill.querySelectorAll(".dot").forEach(function (d) { d.remove(); });
-  pill.textContent = mode;
-  pill.prepend(Object.assign(document.createElement("span"), { className: "dot" }));
-}
-
-function narrate(btn) {
-  var card = btn.closest(".card");
-  var domain = card.getAttribute("data-domain");
-  var box = $(".narrative", card);
-  var original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = "Narrating…";
-  fetch("/api/narrate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ domain: domain })
-  })
-    .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-    .then(function (r) {
-      if (!r.ok) throw new Error(r.data.error || ("HTTP " + r.ok));
-      state.narrations[domain] = r.data;
-      box.innerHTML = narrativeHtml(r.data, r.data.backend);
-      box.classList.remove("hidden");
-      btn.textContent = "Re-narrate with Gemma";
-      logLine("narrate", domain + " — narrated via " + (r.data.backend || "gemma"));
-    })
-    .catch(function (err) {
-      box.innerHTML = '<div class="narr-err">Narration failed: ' + esc(err.message) +
-        '. <button class="btn" onclick="narrate(this)">retry</button></div>';
-      box.classList.remove("hidden");
-      logLine("narrate", domain + " — failed: " + err.message, true);
-      showBanner("degraded", "Narration API failed. Findings are unaffected; try again or check the server log.");
-    })
-    .finally(function () {
-      btn.disabled = false;
-    });
-}
-
-function renderGraph(g) {
-  var svg = $("#graph-svg");
-  if (!svg) return;
-  var W = 640, H = 480, cx = W / 2, cy = H / 2;
-  var nodes = g.nodes || [], edges = g.edges || [];
-  if (!nodes.length) {
-    svg.innerHTML = '<text x="' + cx + '" y="' + cy + '" text-anchor="middle" class="gnode">no graph data — run a scan</text>';
-    return;
-  }
-  var rings = { domain: 148, maintainer: 80, package: 228 };
-  var byType = {};
-  nodes.forEach(function (n) { (byType[n.type] || (byType[n.type] = [])).push(n); });
-  var pos = {}, riskOf = {};
-  nodes.forEach(function (n) { riskOf[n.id] = Number(n.risk) || 0; });
-  Object.keys(byType).forEach(function (type) {
-    var list = byType[type];
-    var r = rings[type] || 120;
-    list.forEach(function (n, i) {
-      var a = (i / list.length) * Math.PI * 2 - Math.PI / 2 + (type === "package" ? 0.14 : 0);
-      pos[n.id] = { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-    });
-  });
-  var edgeHtml = "";
-  edges.forEach(function (e) {
-    var a = pos[e.source], b = pos[e.target];
-    if (!a || !b) return;
-    var op = 0.1 + Math.min(riskOf[e.target] || 0, 100) / 320;
-    edgeHtml += '<line class="edge" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) +
-      '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '" stroke-opacity="' + op.toFixed(3) + '"/>';
-  });
-  var nodeHtml = "";
-  nodes.forEach(function (n) {
-    var p = pos[n.id];
-    if (!p) return;
-    var isDomain = n.type === "domain";
-    var color = isDomain ? sevColor(riskOf[n.id]) : "#3d4c66";
-    var r = isDomain ? 9 : 4.5;
-    nodeHtml += "<g><title>" + esc(n.label) + (isDomain ? " — risk " + riskOf[n.id] : "") + "</title>" +
-      '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + r + '" fill="' + color + '"' +
-      (isDomain ? ' stroke="' + color + '" stroke-opacity="0.3" stroke-width="7"' : "") + "/></g>";
-    if (isDomain) {
-      nodeHtml += '<text class="gnode" x="' + p.x.toFixed(1) + '" y="' + (p.y - 14).toFixed(1) +
-        '" text-anchor="middle">' + esc(n.label) + "</text>";
-    }
-  });
-  svg.innerHTML = edgeHtml + nodeHtml;
-}
-
-function fetchGraph() {
-  fetch("/api/graph", { cache: "no-store" })
-    .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
-    .then(function (g) { renderGraph(g); })
-    .catch(function (err) {
-      var svg = $("#graph-svg");
-      if (svg) svg.innerHTML = '<text x="320" y="240" text-anchor="middle" class="gnode">graph unavailable — ' + esc(err.message) + "</text>";
-      logLine("graph", "fetch failed: " + err.message, true);
-    });
-}
-
-function startStream() {
-  if (state.es) { state.es.close(); state.es = null; }
-  if (typeof EventSource === "undefined") {
-    showBanner("degraded", "This browser has no EventSource support, so live scans cannot stream. Cached findings still show.");
-    return;
-  }
-  hideBanner("degraded");
-  var btn = $("#run-btn");
-  btn.disabled = true;
-  btn.textContent = "Scanning…";
-  var es = new EventSource("/api/run");
-  state.es = es;
-
-  es.addEventListener("start", function (e) {
-    var d = JSON.parse(e.data);
-    setModePill(d.mode);
-    logLine("start", d.note || ("mode: " + d.mode));
-    if (d.mode !== "demo") hideBanner("nokey");
-    var grid = $("#grid");
-    grid.innerHTML = "";
-    state.cards = {};
-    state.findings = [];
-    renderSkeletons();
-  });
-
-  es.addEventListener("progress", function (e) {
-    var d = JSON.parse(e.data);
-    logLine(d.stage, d.message);
-  });
-
-  es.addEventListener("finding", function (e) {
-    var d = JSON.parse(e.data);
-    state.findings.push(d.finding);
-    upsertCard(d.finding, true);
-    state.meta.stats = computeStats(state.findings);
-    renderStats();
-  });
-
-  es.addEventListener("done", function (e) {
-    var d = JSON.parse(e.data);
-    logLine("done", d.findings_count + " findings in " + d.elapsed_s + "s");
-    setModePill(d.mode);
-    state.meta.stats = d.stats || computeStats(state.findings);
-    renderStats();
-    es.close();
-    state.es = null;
-    btn.disabled = false;
-    btn.textContent = "Run scan";
-    if (!d.findings_count) showEmpty("The scan completed with no findings.");
-    fetchGraph();
-  });
-
-  es.addEventListener("failed", function (e) {
-    var d = JSON.parse(e.data);
-    logLine("error", d.message, true);
-    showBanner("degraded", "Scan stream error: " + esc(d.message) + ". Findings shown are from the last completed run.");
-    btn.disabled = false;
-    btn.textContent = "Run scan";
-    es.close();
-    state.es = null;
-  });
-
-  es.onerror = function () {
-    if (state.es !== es) return;
-    logLine("stream", "connection lost", true);
-    showBanner("degraded", "Scan stream disconnected. Findings shown are from the last completed run.");
-    btn.disabled = false;
-    btn.textContent = "Run scan";
-    es.close();
-    state.es = null;
-  };
-}
-
-function init() {
-  renderSkeletons();
-  fetch("/api/findings", { cache: "no-store" })
-    .then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    })
-    .then(function (data) { applyFindings(data); })
-    .catch(function (err) {
-      showEmpty("Findings API unreachable (" + esc(err.message) + "). Check that app.py is running.");
-      showBanner("degraded", "Findings API unreachable (" + esc(err.message) + "). Start the server with <code>python app.py</code> and retry.");
-      logLine("api", "findings fetch failed: " + err.message, true);
-      renderStats();
-    });
-  startStream();
-}
-
-document.getElementById("run-btn").addEventListener("click", startStream);
-init();
-</script>
+    <section class="graph-card" aria-labelledby="graph-title">
+      <div class="section-title-row">
+        <div><p class="eyebrow">Relationships</p><h2 id="graph-title">Dependency graph</h2></div>
+        <span class="graph-legend"><span class="legend-domain"></span> Domain <span class="legend-package"></span> Package</span>
+      </div>
+      <div id="graph-region" class="graph-region" role="img" aria-label="Dependency graph loading">
+        <p class="table-message">Loading dependency graph…</p>
+      </div>
+      <p id="graph-error" class="error-message" hidden></p>
+    </section>
+    <p class="limitations">Risk flags are heuristics, not proof of compromise.</p>
+  </main>
+  <footer class="page-footer"><span>Lazarus</span><span>Domain exposure review</span></footer>
 </body>
 </html>

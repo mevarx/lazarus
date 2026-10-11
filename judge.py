@@ -20,10 +20,19 @@ Stdlib only (per INTERFACES.md: ``python`` 3.11, not ``python3``).
 from __future__ import annotations
 
 import json
+import hashlib
+import http.client
 import os
+import random
 import re
+import socket
+import threading
+import time
+import urllib.parse
 import urllib.error
 import urllib.request
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 __all__ = [
     "Judge",
@@ -40,12 +49,14 @@ __all__ = [
 GEMINI_BASE_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
+# Google documents these Gemini API IDs at https://ai.google.dev/gemma/docs/core/gemma_on_gemini_api.
 GEMINI_MODEL = "gemma-4-31b-it"
 GEMINI_FALLBACK_MODEL = "gemma-4-26b-a4b-it"
+GEMINI_MODELS_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
-OLLAMA_MODEL = "gemma3:4b"
+OLLAMA_MODEL = (os.environ.get("OLLAMA_MODEL") or "gemma3:4b").strip()
 
 VALID_BACKENDS = ("auto", "gemini", "ollama", "offline")
 
@@ -130,11 +141,17 @@ _RECOMMENDATIONS = {
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 _JSON_BLOCK = re.compile(r"\{.*\}", re.S)
 
+_MODEL_CACHE: dict[str, tuple[bool, tuple[str, ...], str]] = {}
+_MODEL_CACHE_LOCK = threading.Lock()
+_EMAIL_RE = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.I)
+_VALID_SEVERITIES = {"CRITICAL", "HIGH", "MEDIUM", "LOW"}
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
 
 class Judge:
     """Writes the plain-English narrative for a scored domain-takeover finding."""
 
-    def __init__(self, backend: str = "auto", timeout: int = 30):
+    def __init__(self, backend: str = "auto", timeout: int = 30, *, sleep=None, jitter=None):
         if backend not in VALID_BACKENDS:
             raise ValueError(
                 f"unknown backend {backend!r}; expected one of {VALID_BACKENDS}"
@@ -142,16 +159,16 @@ class Judge:
         self.requested = backend
         self.timeout = max(1, int(timeout))
         self.reason: str | None = None
-        # Capture the key at construction so the backend decision and every
-        # later request agree — reading it lazily would send an empty key if
-        # the environment changed after __init__.
         self.api_key = (os.environ.get("GEMINI_API_KEY") or "").strip()
+        self.ollama_model = (os.environ.get("OLLAMA_MODEL") or OLLAMA_MODEL).strip()
+        self._sleep = sleep or time.sleep
+        self._jitter = jitter or random.random
+        self._ollama_available: bool | None = None
+        self._models_verified: bool | None = None
+        self._last_provider: dict | None = None
         self.backend = self._resolve(backend)
 
-    # -- backend selection ---------------------------------------------------
-
     def _resolve(self, backend: str) -> str:
-        """Map the requested backend onto one that can actually answer."""
         if backend == "offline":
             self.reason = "offline backend requested explicitly"
             return "offline"
@@ -161,14 +178,15 @@ class Judge:
                 return "offline"
             return "gemini"
         if backend == "ollama":
-            if _ollama_reachable(timeout=2):
+            self._ollama_available = _ollama_reachable(timeout=2)
+            if self._ollama_available:
                 return "ollama"
             self.reason = "no Ollama server on localhost:11434"
             return "offline"
-        # auto
         if self.api_key:
             return "gemini"
-        if _ollama_reachable(timeout=2):
+        self._ollama_available = _ollama_reachable(timeout=2)
+        if self._ollama_available:
             return "ollama"
         self.reason = "no GEMINI_API_KEY and no Ollama server on localhost:11434"
         return "offline"
@@ -183,43 +201,273 @@ class Judge:
         self._api_key = (value or "").strip()
 
     def is_live(self) -> bool:
-        """True when a real model will produce the narrative."""
+        if self._last_provider is not None:
+            return bool(self._last_provider["live"])
         return self.backend != "offline"
 
     def describe(self) -> dict:
-        """Diagnostic snapshot — useful for the degraded-mode banner."""
+        """Return safe provider diagnostics; API credentials are never included."""
+        if self._last_provider is not None:
+            info = self._last_provider
+        elif self.backend == "offline":
+            info = _provider_info("offline", "offline-template", False, None, [], self._models_verified)
+        else:
+            label = "Gemini API" if self.backend == "gemini" else "local Ollama"
+            info = {
+                "backend": self.backend,
+                "model": None,
+                "model_family": "Unknown",
+                "provider_label": f"{label} · configured; no response yet",
+                "live": True,
+                "degraded_from": None,
+                "fallback_chain": [],
+                "models_verified": self._models_verified,
+            }
         return {
             "requested": self.requested,
-            "backend": self.backend,
-            "live": self.is_live(),
+            "backend": info["backend"],
+            "live": info["live"],
             "reason": self.reason,
-            "model": self._model_name(),
+            "model": info["model"],
+            "model_family": info["model_family"],
+            "provider_label": info["provider_label"],
+            "models_verified": info["models_verified"],
         }
 
-    def _model_name(self) -> str | None:
-        if self.backend == "gemini":
-            return GEMINI_MODEL
-        if self.backend == "ollama":
-            return OLLAMA_MODEL
-        return None
+    def __repr__(self) -> str:
+        return f"Judge({json.dumps(self.describe(), sort_keys=True)})"
 
-    # -- public API ----------------------------------------------------------
+    __str__ = __repr__
+
+    def _model_name(self) -> str | None:
+        """Return the model that last answered, never merely the preferred ID."""
+        if self._last_provider is not None:
+            return self._last_provider["model"]
+        return "offline-template" if self.backend == "offline" else None
+
+    def _remember(self, info: dict) -> None:
+        self._last_provider = info
+        self._models_verified = info["models_verified"]
+
+    def _gemini_model_ids(self, chain: list[dict], deadline: float) -> list[str]:
+        cache_key = hashlib.sha256(self.api_key.encode("utf-8")).hexdigest()
+        with _MODEL_CACHE_LOCK:
+            cached = _MODEL_CACHE.get(cache_key)
+        if cached is not None:
+            verified, ids, outcome = cached
+            chain.append({"backend": "gemini", "model": None, "attempt": 1, "outcome": "models_cached"})
+        else:
+            token = None
+            names: list[str] = []
+            failure = None
+            pages = 0
+            while True:
+                pages += 1
+                if pages > 100 or time.monotonic() >= deadline:
+                    failure = "list_models_budget_exhausted"
+                    break
+                query = urllib.parse.urlencode({"pageToken": token}) if token else ""
+                url = GEMINI_MODELS_URL + (f"?{query}" if query else "")
+                payload = None
+                for attempt in range(1, 4):
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        failure = "list_models_budget_exhausted"
+                        break
+                    request = urllib.request.Request(
+                        url,
+                        headers={"Accept": "application/json", "x-goog-api-key": self.api_key},
+                        method="GET",
+                    )
+                    payload, status, retry_after, error = _fetch_json(
+                        request, min(float(self.timeout), remaining)
+                    )
+                    outcome = f"http_{status}" if error and status is not None else (error or "success")
+                    chain.append({"backend": "gemini", "model": None, "attempt": attempt, "outcome": outcome})
+                    if not error:
+                        failure = None
+                        break
+                    failure = f"list_models_{error}"
+                    if status is not None:
+                        failure = f"list_models_http_{status}"
+                    if status not in _RETRYABLE_STATUS or attempt == 3:
+                        break
+                    delay = retry_after if retry_after is not None else 0.5 * (2 ** (attempt - 1)) + max(0.0, min(1.0, float(self._jitter()))) * 0.25
+                    delay = min(30.0, max(0.0, delay), max(0.0, deadline - time.monotonic()))
+                    if delay:
+                        try:
+                            self._sleep(delay)
+                        except Exception:
+                            pass
+                if failure:
+                    break
+                models = payload.get("models") if isinstance(payload, dict) else None
+                if not isinstance(models, list):
+                    failure = "list_models_invalid_response"
+                    break
+                for item in models:
+                    if not isinstance(item, dict):
+                        continue
+                    methods = item.get("supportedGenerationMethods") or []
+                    name = str(item.get("name") or "")
+                    if "generateContent" in methods and _model_family(name) == "Gemma 4":
+                        model_id = name.rsplit("/", 1)[-1]
+                        if model_id and model_id not in names:
+                            names.append(model_id)
+                token = payload.get("nextPageToken")
+                if not token:
+                    break
+            if failure:
+                verified, ids, outcome = False, (), failure
+            else:
+                preferred = [GEMINI_MODEL, GEMINI_FALLBACK_MODEL]
+                ids = tuple([name for name in preferred if name in names] + [
+                    name for name in names if name not in preferred
+                ])
+                verified = True
+                outcome = "models_listed" if ids else "no_supported_gemma4_models"
+            with _MODEL_CACHE_LOCK:
+                cached = _MODEL_CACHE.setdefault(cache_key, (verified, ids, outcome))
+            verified, ids, outcome = cached
+
+        self._models_verified = verified
+        chain.append({"backend": "gemini", "model": None, "attempt": 1, "outcome": outcome})
+        if not verified:
+            return [GEMINI_MODEL, GEMINI_FALLBACK_MODEL]
+        return list(ids)
+
+    def _request_text(self, backend: str, model: str, prompt: str, deadline: float) -> tuple[str | None, list[dict]]:
+        if backend == "gemini":
+            url = GEMINI_BASE_URL.format(model=model)
+            headers = {"Content-Type": "application/json", "x-goog-api-key": self.api_key}
+            body = {"contents": [{"parts": [{"text": prompt}]}]}
+            extract = _gemini_text
+            request_timeout = min(self.timeout, 15)
+        else:
+            url = OLLAMA_URL
+            headers = {"Content-Type": "application/json"}
+            body = {"model": model, "prompt": prompt, "stream": False}
+            extract = _ollama_text
+            request_timeout = min(self.timeout, 15)
+
+        entries: list[dict] = []
+        for attempt in range(1, 4):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                entries.append({"backend": backend, "model": model, "attempt": attempt, "outcome": "budget_exhausted"})
+                break
+            request = urllib.request.Request(
+                url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST"
+            )
+            payload, status, retry_after, error = _fetch_json(
+                request, min(float(request_timeout), remaining)
+            )
+            text = None
+            if not error and isinstance(payload, dict):
+                try:
+                    text = extract(payload)
+                except Exception:  # malformed provider response
+                    text = None
+            if error:
+                outcome = f"http_{status}" if status is not None else error
+            elif not isinstance(text, str) or not text.strip():
+                outcome = "empty_response"
+            else:
+                outcome = "success"
+            entries.append({"backend": backend, "model": model, "attempt": attempt, "outcome": outcome})
+            if outcome == "success":
+                return text, entries
+            if status not in _RETRYABLE_STATUS or attempt == 3:
+                break
+            delay = retry_after if retry_after is not None else 0.5 * (2 ** (attempt - 1)) + max(0.0, min(1.0, float(self._jitter()))) * 0.25
+            delay = min(30.0, max(0.0, delay), max(0.0, deadline - time.monotonic()))
+            if delay:
+                try:
+                    self._sleep(delay)
+                except Exception:  # an injected sleeper must not escape public APIs
+                    pass
+        return None, entries
+
+    def _run_providers(self, prompt: str, parse, finding: dict) -> tuple[dict | None, dict]:
+        chain: list[dict] = []
+        deadline = time.monotonic() + min(30.0, max(10.0, float(self.timeout)))
+        degraded_from = None
+        models_verified = None
+
+        def try_model(backend: str, model: str):
+            text, attempts = self._request_text(backend, model, prompt, deadline)
+            chain.extend(attempts)
+            if text is None:
+                return None
+            try:
+                parsed = parse(text)
+            except Exception:
+                parsed = None
+            if parsed is None:
+                if attempts:
+                    attempts[-1]["outcome"] = "invalid_model_output"
+                return None
+            return parsed
+
+        use_gemini = self.requested in {"auto", "gemini"} and bool(self.api_key)
+        if use_gemini:
+            models = self._gemini_model_ids(chain, deadline)
+            models_verified = self._models_verified
+            if not models:
+                degraded_from = "gemini"
+            for model in models:
+                parsed = try_model("gemini", model)
+                if parsed is not None:
+                    info = _provider_info("gemini", model, True, None, chain, models_verified)
+                    info["degraded_from"] = None
+                    if not models_verified:
+                        self.reason = "ListModels unavailable; documented Gemma 4 IDs are unverified"
+                    self._remember(info)
+                    return parsed, info
+            if models:
+                degraded_from = "gemini"
+
+        use_ollama = self.requested in {"auto", "gemini", "ollama"}
+        if use_ollama:
+            if self._ollama_available is None:
+                self._ollama_available = _ollama_reachable(timeout=2)
+            chain.append({
+                "backend": "ollama", "model": self.ollama_model, "attempt": 1,
+                "outcome": "reachable" if self._ollama_available else "unreachable",
+            })
+            if self._ollama_available:
+                parsed = try_model("ollama", self.ollama_model)
+                if parsed is not None:
+                    info = _provider_info("ollama", self.ollama_model, True, degraded_from, chain, models_verified)
+                    self.reason = "Gemini API unavailable; using local Ollama" if degraded_from == "gemini" else None
+                    self._remember(info)
+                    return parsed, info
+            elif degraded_from is None:
+                degraded_from = "ollama"
+            if self._ollama_available and degraded_from is None:
+                degraded_from = "ollama"
+
+        info = _provider_info("offline", "offline-template", False, degraded_from, chain, models_verified)
+        if degraded_from:
+            self.reason = f"{degraded_from} unavailable; using offline template"
+        self._remember(info)
+        return None, info
 
     def narrate(self, finding: dict) -> dict:
-        """Explain a finding. Never raises — always returns the 3-key contract."""
+        """Explain a finding and identify the provider that actually answered."""
         finding = finding if isinstance(finding, dict) else {}
         try:
-            if self.backend == "gemini":
-                result = self._narrate_gemini(finding)
-                if result:
-                    return result
-            elif self.backend == "ollama":
-                result = self._narrate_ollama(finding)
-                if result:
-                    return result
+            parsed, info = self._run_providers(
+                build_prompt(finding),
+                lambda text: _normalise(_parse_model_json(text), finding),
+                finding,
+            )
+            narrative = parsed if parsed is not None else self._narrate_offline(finding)
+            return _with_provider(_scrub_result(narrative, finding, self.api_key), info)
         except Exception:  # noqa: BLE001 — narrate() must never raise
-            pass
-        return self._narrate_offline(finding)
+            info = _provider_info("offline", "offline-template", False, self.backend, [], self._models_verified)
+            self._remember(info)
+            return _with_provider(_scrub_result(self._narrate_offline(finding), finding, self.api_key), info)
 
     def analyze(self, finding: dict) -> dict:
         """Load-bearing structured analysis of ONE finding.
@@ -232,45 +480,24 @@ class Judge:
         deterministic template offline.
         """
         finding = finding if isinstance(finding, dict) else {}
-        prompt = build_analyze_prompt(finding)
-        text = None
         try:
-            if self.backend == "gemini":
-                for model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
-                    text = _http_json_text(
-                        GEMINI_BASE_URL.format(model=model),
-                        headers={"Content-Type": "application/json",
-                                 "x-goog-api-key": self.api_key},
-                        body={"contents": [{"parts": [{"text": prompt}]}]},
-                        timeout=max(self.timeout, 60),
-                        extract=_gemini_text,
-                    )
-                    if text:
-                        break
-            elif self.backend == "ollama":
-                text = _http_json_text(
-                    OLLAMA_URL,
-                    headers={"Content-Type": "application/json"},
-                    body={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-                    timeout=max(self.timeout, 90),
-                    extract=_ollama_text,
-                )
+            prompt = build_analyze_prompt(finding)
+            parsed, info = self._run_providers(
+                prompt, lambda text: _parse_analyze_json(text, finding), finding
+            )
         except Exception:  # noqa: BLE001
-            text = None
-        parsed = _parse_analyze_json(text, finding) if text else None
-        if parsed is None:
-            return self._analyze_offline(finding)
-        parsed["backend"] = self.backend
-        parsed["live"] = True
-        parsed["model"] = self._model_name()
-        return parsed
+            parsed = None
+            info = _provider_info("offline", "offline-template", False, self.backend, [], self._models_verified)
+            self._remember(info)
+        result = parsed if parsed is not None else self._analyze_offline(finding)
+        return _with_provider(_scrub_result(result, finding, self.api_key), info)
 
     def _analyze_offline(self, finding: dict) -> dict:
         """Deterministic fallback: cite the scorer's own signals and template
         a disclosure email from them. Honest that it is not model-generated."""
         domain = str(finding.get("domain") or "the domain")
-        signals = [str(s) for s in (finding.get("signals") or [])]
-        reasoning = [str(r) for r in (finding.get("reasoning") or [])]
+        signals = [str(s) for s in _as_list(finding.get("signals"))]
+        reasoning = [str(r) for r in _as_list(finding.get("reasoning"))]
         evidence = signals or reasoning or ["no signals recorded"]
         email = (
             f"Subject: Action needed — the email domain behind your npm packages "
@@ -286,13 +513,12 @@ class Judge:
             f"— Lazarus (automated scan)"
         )
         return {
-            "backend": self.backend,
-            "live": False,
-            "model": "offline-template",
             "evidence": evidence[:5],
             "risk_reasoning": reasoning[:3] or ["rules-only assessment"],
             "disclosure_email": email,
             "confidence": "low",
+            "severity": None,
+            "risk": None,
         }
 
     def triage(self, findings: list[dict]) -> dict:
@@ -307,40 +533,24 @@ class Judge:
         Falls back to the rules-only baseline ordering when offline, so the
         backtest always has something to compare against.
         """
-        clean = [f for f in findings if isinstance(f, dict) and f.get("domain")]
-        if not clean:
-            return {"backend": self.backend, "live": False, "ranking": [], "assessments": []}
-        prompt = build_triage_prompt(clean)
-        text = None
         try:
-            if self.backend == "gemini":
-                for model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
-                    text = _http_json_text(
-                        GEMINI_BASE_URL.format(model=model),
-                        headers={"Content-Type": "application/json",
-                                 "x-goog-api-key": self.api_key},
-                        body={"contents": [{"parts": [{"text": prompt}]}]},
-                        timeout=max(self.timeout, 60),
-                        extract=_gemini_text,
-                    )
-                    if text:
-                        break
-            elif self.backend == "ollama":
-                text = _http_json_text(
-                    OLLAMA_URL,
-                    headers={"Content-Type": "application/json"},
-                    body={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-                    timeout=max(self.timeout, 90),
-                    extract=_ollama_text,
-                )
+            clean = [f for f in (findings or []) if isinstance(f, dict) and f.get("domain")]
+        except Exception:
+            clean = []
+        if not clean:
+            info = _provider_info("offline", "offline-template", False, None, [], self._models_verified)
+            return _with_provider({"ranking": [], "assessments": []}, info)
+        try:
+            prompt = build_triage_prompt(clean)
+            parsed, info = self._run_providers(
+                prompt, lambda text: _parse_triage_json(text, clean), {}
+            )
         except Exception:  # noqa: BLE001
-            text = None
-        parsed = _parse_triage_json(text, clean) if text else None
-        if parsed is None:
-            return self._triage_offline(clean)
-        parsed["backend"] = self.backend
-        parsed["live"] = True
-        return parsed
+            parsed = None
+            info = _provider_info("offline", "offline-template", False, self.backend, [], self._models_verified)
+            self._remember(info)
+        result = parsed if parsed is not None else self._triage_offline(clean)
+        return _with_provider(_scrub_result(result, {}, self.api_key), info)
 
     def _triage_offline(self, clean: list[dict]) -> dict:
         """Rules-only baseline: order by the scorer's existing risk field."""
@@ -354,52 +564,18 @@ class Judge:
                     "domain": str(f["domain"]),
                     "model_risk": _as_int(f.get("risk")),
                     "confidence": "low",
-                    "key_evidence": [str(s) for s in (f.get("signals") or [])][:3],
+                    "key_evidence": [str(s) for s in _as_list(f.get("signals"))][:3],
                     "reasoning": "rules-only baseline (no live model available)",
                 }
                 for f in ordered
             ],
         }
 
-    # -- live backends -------------------------------------------------------
-
-    def _narrate_gemini(self, finding: dict) -> dict | None:
-        prompt = build_prompt(finding)
-        for model in (GEMINI_MODEL, GEMINI_FALLBACK_MODEL):
-            text = _http_json_text(
-                GEMINI_BASE_URL.format(model=model),
-                headers={
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": self.api_key,
-                },
-                body={"contents": [{"parts": [{"text": prompt}]}]},
-                timeout=self.timeout,
-                extract=_gemini_text,
-            )
-            if text:
-                return _normalise(_parse_model_json(text), finding)
-        return None
-
-    def _narrate_ollama(self, finding: dict) -> dict | None:
-        prompt = build_prompt(finding)
-        text = _http_json_text(
-            OLLAMA_URL,
-            headers={"Content-Type": "application/json"},
-            body={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-            timeout=self.timeout,
-            extract=_ollama_text,
-        )
-        if not text:
-            return None
-        return _normalise(_parse_model_json(text), finding)
-
-    # -- offline template ----------------------------------------------------
-
     def _narrate_offline(self, finding: dict) -> dict:
         """Deterministic narrative assembled from the finding's signals."""
         domain = str(finding.get("domain") or "this domain").strip()
-        signals = [str(s) for s in (finding.get("signals") or []) if str(s).strip()]
-        packages = [str(p) for p in (finding.get("packages") or []) if str(p).strip()]
+        signals = [str(s) for s in _as_list(finding.get("signals")) if str(s).strip()]
+        packages = [str(p) for p in _as_list(finding.get("packages")) if str(p).strip()]
         severity = str(finding.get("severity") or "LOW").upper()
         risk = finding.get("risk")
         try:
@@ -449,12 +625,114 @@ class Judge:
 # --- helpers -----------------------------------------------------------------
 
 
+def _fetch_json(request, timeout: float):
+    """Read one JSON response without retaining or surfacing exception text."""
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            status = getattr(response, "status", 200)
+            raw = response.read().decode("utf-8", "replace")
+            headers = getattr(response, "headers", {})
+    except urllib.error.HTTPError as exc:
+        status = getattr(exc, "code", None)
+        headers = getattr(exc, "headers", {}) or {}
+        return None, status, _retry_after(headers), "http_error"
+    except (socket.timeout, TimeoutError, urllib.error.URLError, http.client.HTTPException, OSError):
+        return None, None, None, "network_error"
+    except Exception:
+        return None, None, None, "network_error"
+    if status is not None and not 200 <= status < 300:
+        return None, status, _retry_after(headers), "http_error"
+    try:
+        payload = json.loads(raw)
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return None, status, None, "invalid_json"
+    return payload, status, None, None
+
+
+def _retry_after(headers) -> float | None:
+    value = None
+    try:
+        value = headers.get("Retry-After")
+    except Exception:
+        return None
+    if value is None:
+        return None
+    try:
+        return max(0.0, min(30.0, float(value)))
+    except (TypeError, ValueError):
+        try:
+            date = parsedate_to_datetime(str(value))
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone.utc)
+            return max(0.0, min(30.0, (date - datetime.now(timezone.utc)).total_seconds()))
+        except Exception:
+            return None
+
+
+def _model_family(model: str | None) -> str:
+    value = str(model or "").lower().rsplit("/", 1)[-1]
+    if re.match(r"^gemma-?4(?:[-:]|$)", value):
+        return "Gemma 4"
+    if re.match(r"^gemma-?3(?:n)?(?:[-:]|$)", value):
+        return "Gemma 3"
+    if value == "offline-template":
+        return "Offline template"
+    return "Unknown"
+
+
+def _provider_info(backend, model, live, degraded_from, fallback_chain, models_verified):
+    family = _model_family(model)
+    if backend == "offline":
+        label = "Offline template · no model ran"
+    else:
+        provider = "Gemini API" if backend == "gemini" else "local Ollama"
+        label = f"{family} · {model} · {provider}" if model else f"{provider} · no model answered"
+    return {
+        "backend": backend,
+        "model": model,
+        "model_family": family,
+        "provider_label": label,
+        "live": bool(live),
+        "degraded_from": degraded_from,
+        "fallback_chain": [dict(entry) for entry in fallback_chain],
+        "models_verified": models_verified,
+    }
+
+
+def _with_provider(result: dict, info: dict) -> dict:
+    return {**result, **info}
+
+
+def _scrub_text(value, finding: dict, secret: str = "") -> str:
+    text = str(value)
+    text = _EMAIL_RE.sub("[redacted email]", text)
+    maintainers = finding.get("maintainers") if isinstance(finding, dict) else []
+    if isinstance(maintainers, (str, bytes)):
+        maintainers = [maintainers]
+    if not isinstance(maintainers, (list, tuple, set)):
+        maintainers = []
+    for maintainer in sorted((str(item) for item in (maintainers or []) if item), key=len, reverse=True):
+        text = re.sub(re.escape(maintainer), "[redacted]", text, flags=re.I)
+    if secret:
+        text = text.replace(secret, "[redacted]")
+    return text
+
+
+def _scrub_result(value, finding: dict, secret: str = ""):
+    if isinstance(value, dict):
+        return {key: _scrub_result(item, finding, secret) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_scrub_result(item, finding, secret) for item in value]
+    if isinstance(value, str):
+        return _scrub_text(value, finding, secret)
+    return value
+
+
 def build_prompt(finding: dict) -> str:
     """Render the scorer's finding as a prompt for either live backend."""
     domain = str(finding.get("domain") or "unknown")
-    signals = [str(s) for s in (finding.get("signals") or [])]
-    packages = [str(p) for p in (finding.get("packages") or [])]
-    maintainers = [str(m) for m in (finding.get("maintainers") or [])]
+    signals = [str(s) for s in _as_list(finding.get("signals"))]
+    packages = [str(p) for p in _as_list(finding.get("packages"))]
     lines = [
         "You are the risk analyst for Lazarus, a scanner that finds package",
         "maintainers whose email domain is at risk of being taken over.",
@@ -463,7 +741,7 @@ def build_prompt(finding: dict) -> str:
         f"Risk score: {finding.get('risk', 'n/a')}/100",
         f"Severity: {str(finding.get('severity', 'n/a')).upper()}",
         f"Packages: {', '.join(packages) if packages else 'none recorded'}",
-        f"Maintainers: {', '.join(maintainers) if maintainers else 'none recorded'}",
+        "Maintainer identities: redacted; do not include email addresses in the response.",
         f"Dependents: {_as_int(finding.get('dependents')):,}",
         f"Weekly downloads: {_as_int(finding.get('downloads_week')):,}",
         "",
@@ -535,7 +813,7 @@ def build_triage_prompt(findings: list[dict]) -> str:
             f"    mail (MX) live on domain: {f.get('mx_present')}",
             f"    dependents: {_as_int(f.get('dependents'))}",
             f"    weekly downloads: {_as_int(f.get('downloads_week'))}",
-            f"    packages: {', '.join(str(p) for p in (f.get('packages') or [])) or 'none'}",
+            f"    packages: {', '.join(str(p) for p in _as_list(f.get('packages'))) or 'none'}",
         ]
     return "\n".join(lines)
 
@@ -555,7 +833,7 @@ def build_analyze_prompt(finding: dict) -> str:
         "facts that matter.",
         "",
         f"Domain: {finding.get('domain')}",
-        f"Packages maintained via this domain: {', '.join(str(p) for p in (finding.get('packages') or [])) or 'unknown'}",
+        f"Packages maintained via this domain: {', '.join(str(p) for p in _as_list(finding.get('packages'))) or 'unknown'}",
         f"Maintainer dormant (no publish 24mo): {finding.get('maintainer_dormant')}",
         f"Last publish: {finding.get('last_publish') or 'unknown'}",
         f"Mail (MX) live on domain: {finding.get('mx_present')}",
@@ -571,6 +849,8 @@ def build_analyze_prompt(finding: dict) -> str:
         '                N days old", "maintainer dormant since <date>",',
         '                "expires in N days", "N dependent packages" ],',
         '  "risk_reasoning": [ up to 3 strings explaining the attack path ],',
+        '  "severity": independently chosen critical|high|medium|low,',
+        '  "risk": independently chosen integer from 0 to 100,',
         '  "confidence": "high" | "medium" | "low",',
         '  "disclosure_email": a plain-English email to the maintainer: a',
         '       subject line, why this matters (domain takeover -> password',
@@ -603,11 +883,22 @@ def _parse_analyze_json(text: str | None, finding: dict) -> dict | None:
         email = (f"Subject: {subj}\n\n{bod}" if subj else bod)
     else:
         return None
+    severity_value = str(data.get("severity") or "").strip().upper()
+    severity = severity_value if severity_value in _VALID_SEVERITIES else None
+    risk_value = data.get("risk")
+    risk = None
+    if not isinstance(risk_value, bool) and risk_value is not None:
+        try:
+            risk = max(0, min(100, int(risk_value)))
+        except (TypeError, ValueError, OverflowError):
+            risk = None
     return {
         "evidence": [str(x) for x in evidence][:5],
         "risk_reasoning": [str(x) for x in (data.get("risk_reasoning") or [])][:3],
         "confidence": str(data.get("confidence") or "low"),
         "disclosure_email": email,
+        "severity": severity,
+        "risk": risk,
     }
 
 
@@ -685,8 +976,16 @@ def _sentence(text: str) -> str:
 def _as_int(value) -> int:
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return 0
+
+
+def _as_list(value) -> list:
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    if isinstance(value, str) and value:
+        return [value]
+    return []
 
 
 def _rank_signals(signals: list[str]) -> list[tuple[str, int, str]]:

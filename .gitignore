@@ -1,12 +1,22 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# runtime state and caches
 data/last_run.json
 data/rdap_cache.json
-.env
+data/harvest.local.json
 
-# web dashboard
-web/node_modules/
-web/dist/
-web/*.tsbuildinfo
-web/.vite/
+# secrets: never commit keys or env files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# local agent/runtime scratch
+.hoplite/runtime/
+
+
+# web/ is not used on this branch (static frontend lives in static/)
+web/
